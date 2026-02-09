@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, UserPlus, Mail, Phone, Calendar, Users } from 'lucide-react';
+import { Search, Filter, UserPlus, Upload, Mail, Phone, Calendar, Users, Edit2, Trash2 } from 'lucide-react';
 import { mockLearners } from '../lib/mockData';
 import AddLearnerModal, { LearnerFormData } from '../components/AddLearnerModal';
+import EditLearnerModal from '../components/EditLearnerModal';
+import ImportLearnersModal, { ImportedLearner } from '../components/ImportLearnersModal';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import SuccessNotification from '../components/SuccessNotification';
 
 interface Learner {
@@ -48,6 +51,10 @@ export default function Learners() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedLearner, setSelectedLearner] = useState<Learner | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -78,25 +85,85 @@ export default function Learners() {
           return isNaN(num) ? 0 : num;
         })
         .filter((num: number) => num > 0);
-      
+
       const maxId = numericIds.length > 0 ? Math.max(...numericIds) : 0;
       newId = (maxId + 1).toString();
     }
-    
+
     // Generate a random average score between 60-95 for demonstration
     const randomScore = Math.floor(Math.random() * 36) + 60;
-    
+
     const newLearner = {
       ...learnerData,
       id: newId,
       avgScore: randomScore,
       status: learnerData.status || 'Active',
     };
-    
+
     setLearners([...learners, newLearner]);
     setSuccessMessage(`${learnerData.full_name} has been successfully added to ${learnerData.grade}!`);
     setShowSuccess(true);
     setIsModalOpen(false);
+  };
+
+  const handleImportLearners = (importedLearners: ImportedLearner[]) => {
+    const numericIds = learners
+      .map((l: Learner) => {
+        const num = parseInt(l.id, 10);
+        return isNaN(num) ? 0 : num;
+      })
+      .filter((num: number) => num > 0);
+
+    let maxId = numericIds.length > 0 ? Math.max(...numericIds) : 0;
+
+    const newLearners = importedLearners.map((learnerData) => {
+      maxId += 1;
+      const randomScore = Math.floor(Math.random() * 36) + 60;
+
+      return {
+        ...learnerData,
+        id: maxId.toString(),
+        avgScore: randomScore,
+      };
+    });
+
+    setLearners([...learners, ...newLearners]);
+    setSuccessMessage(`Successfully imported ${newLearners.length} learner${newLearners.length !== 1 ? 's' : ''}!`);
+    setShowSuccess(true);
+    setIsImportModalOpen(false);
+  };
+
+  const handleEditLearner = (learnerData: LearnerFormData) => {
+    if (selectedLearner) {
+      const updatedLearners = learners.map((l) =>
+        l.id === selectedLearner.id ? { ...l, ...learnerData } : l
+      );
+      setLearners(updatedLearners);
+      setSuccessMessage(`${learnerData.full_name}'s details have been updated!`);
+      setShowSuccess(true);
+      setIsEditModalOpen(false);
+      setSelectedLearner(null);
+    }
+  };
+
+  const handleDeleteLearner = () => {
+    if (selectedLearner) {
+      const updatedLearners = learners.filter((l) => l.id !== selectedLearner.id);
+      setLearners(updatedLearners);
+      setSuccessMessage(`${selectedLearner.full_name} has been removed from the system.`);
+      setShowSuccess(true);
+      setSelectedLearner(null);
+    }
+  };
+
+  const openEditModal = (learner: Learner) => {
+    setSelectedLearner(learner);
+    setIsEditModalOpen(true);
+  };
+
+  const openDeleteModal = (learner: Learner) => {
+    setSelectedLearner(learner);
+    setIsDeleteModalOpen(true);
   };
 
   return (
@@ -106,13 +173,22 @@ export default function Learners() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Learner Management</h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage and track all your learners in one place</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-3 py-2 sm:px-4 sm:py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-md text-sm sm:text-base"
-        >
-          <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
-          Add Learner
-        </button>
+        <div className="flex gap-2 sm:gap-3">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-md text-sm sm:text-base"
+          >
+            <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
+            Import Learners
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-3 py-2 sm:px-4 sm:py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-md text-sm sm:text-base"
+          >
+            <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
+            Add Learner
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6">
@@ -171,11 +247,19 @@ export default function Learners() {
               </div>
 
               <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200 flex gap-2">
-                <button className="flex-1 px-2 py-1.5 md:px-3 md:py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-xs md:text-sm font-medium">
-                  View Details
+                <button
+                  onClick={() => openEditModal(learner)}
+                  className="flex-1 px-2 py-1.5 md:px-3 md:py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-xs md:text-sm font-medium flex items-center justify-center gap-1"
+                >
+                  <Edit2 className="w-3 h-3 md:w-4 md:h-4" />
+                  Edit
                 </button>
-                <button className="flex-1 px-2 py-1.5 md:px-3 md:py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-xs md:text-sm font-medium">
-                  Performance
+                <button
+                  onClick={() => openDeleteModal(learner)}
+                  className="flex-1 px-2 py-1.5 md:px-3 md:py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-xs md:text-sm font-medium flex items-center justify-center gap-1"
+                >
+                  <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
+                  Delete
                 </button>
               </div>
             </div>
@@ -217,6 +301,32 @@ export default function Learners() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleAddLearner}
+      />
+
+      <EditLearnerModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedLearner(null);
+        }}
+        onSubmit={handleEditLearner}
+        learner={selectedLearner}
+      />
+
+      <ImportLearnersModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportLearners}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedLearner(null);
+        }}
+        onConfirm={handleDeleteLearner}
+        learnerName={selectedLearner?.full_name || ''}
       />
 
       <SuccessNotification
