@@ -1,10 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, UserPlus, Mail, Phone, Calendar, Users } from 'lucide-react';
 import { mockLearners } from '../lib/mockData';
 import AddLearnerModal, { LearnerFormData } from '../components/AddLearnerModal';
 import SuccessNotification from '../components/SuccessNotification';
 
+// Key for localStorage
+const LOCAL_STORAGE_KEY = 'teacher-management-learners';
+
 export default function Learners() {
+  // Load learners from localStorage or use mock data as fallback
+  const [learners, setLearners] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure we have at least the mock learners if saved data is empty
+        return parsed.length > 0 ? parsed : mockLearners;
+      }
+    } catch (error) {
+      console.error('Failed to load learners from localStorage:', error);
+    }
+    return mockLearners;
+  });
+
+  // Save learners to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(learners));
+    } catch (error) {
+      console.error('Failed to save learners to localStorage:', error);
+    }
+  }, [learners]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -13,7 +39,7 @@ export default function Learners() {
 
   const grades = ['All', 'Grade 10', 'Grade 11', 'Grade 12'];
 
-  const filteredLearners = mockLearners.filter((learner) => {
+  const filteredLearners = learners.filter((learner) => {
     const matchesSearch = learner.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       learner.student_number.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGrade = selectedGrade === 'All' || learner.grade === selectedGrade;
@@ -28,6 +54,32 @@ export default function Learners() {
   };
 
   const handleAddLearner = (learnerData: LearnerFormData) => {
+    // Generate a unique ID (simple increment from existing IDs)
+    let newId = '1';
+    if (learners.length > 0) {
+      // Extract numeric IDs safely
+      const numericIds = learners
+        .map((l: any) => {
+          const num = parseInt(l.id, 10);
+          return isNaN(num) ? 0 : num;
+        })
+        .filter((num: number) => num > 0);
+      
+      const maxId = numericIds.length > 0 ? Math.max(...numericIds) : 0;
+      newId = (maxId + 1).toString();
+    }
+    
+    // Generate a random average score between 60-95 for demonstration
+    const randomScore = Math.floor(Math.random() * 36) + 60;
+    
+    const newLearner = {
+      ...learnerData,
+      id: newId,
+      avgScore: randomScore,
+      status: learnerData.status || 'Active',
+    };
+    
+    setLearners([...learners, newLearner]);
     setSuccessMessage(`${learnerData.full_name} has been successfully added to ${learnerData.grade}!`);
     setShowSuccess(true);
     setIsModalOpen(false);
@@ -78,7 +130,7 @@ export default function Learners() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {filteredLearners.map((learner) => (
+          {filteredLearners.map((learner: any) => (
             <div
               key={learner.id}
               className="border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-lg transition-all duration-200 hover:border-emerald-300"
@@ -128,20 +180,20 @@ export default function Learners() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
           <h3 className="font-bold text-gray-900 mb-2 text-sm md:text-base">Total Learners</h3>
-          <p className="text-3xl md:text-4xl font-bold text-emerald-700">{mockLearners.length}</p>
+          <p className="text-3xl md:text-4xl font-bold text-emerald-700">{learners.length}</p>
           <p className="text-xs md:text-sm text-gray-600 mt-2">Across all grades</p>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
           <h3 className="font-bold text-gray-900 mb-2 text-sm md:text-base">Active This Term</h3>
           <p className="text-3xl md:text-4xl font-bold text-blue-700">
-            {mockLearners.filter(l => l.status === 'Active').length}
+            {learners.filter((l: any) => l.status === 'Active').length}
           </p>
           <p className="text-xs md:text-sm text-gray-600 mt-2">Currently enrolled</p>
         </div>
         <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
           <h3 className="font-bold text-gray-900 mb-2 text-sm md:text-base">Average Score</h3>
           <p className="text-3xl md:text-4xl font-bold text-purple-700">
-            {Math.round(mockLearners.reduce((sum, l) => sum + l.avgScore, 0) / mockLearners.length)}%
+            {learners.length > 0 ? Math.round(learners.reduce((sum: number, l: any) => sum + l.avgScore, 0) / learners.length) : 0}%
           </p>
           <p className="text-xs md:text-sm text-gray-600 mt-2">Overall performance</p>
         </div>
