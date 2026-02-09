@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { Search, Filter, UserPlus, Mail, Phone, Calendar, Users } from 'lucide-react';
 import { mockLearners } from '../lib/mockData';
+import AddLearnerModal, { LearnerFormData } from '../components/AddLearnerModal';
+import SuccessNotification from '../components/SuccessNotification';
 
 export default function Learners() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('All');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const grades = ['All', 'Grade 10', 'Grade 11', 'Grade 12'];
 
@@ -22,6 +27,12 @@ export default function Learners() {
     return 'text-red-700 bg-red-100';
   };
 
+  const handleAddLearner = (learnerData: LearnerFormData) => {
+    setSuccessMessage(`${learnerData.full_name} has been successfully added to ${learnerData.grade}!`);
+    setShowSuccess(true);
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -29,7 +40,10 @@ export default function Learners() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Learner Management</h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage and track all your learners in one place</p>
         </div>
-        <button className="px-3 py-2 sm:px-4 sm:py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-md text-sm sm:text-base">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-3 py-2 sm:px-4 sm:py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-md text-sm sm:text-base"
+        >
           <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
           Add Learner
         </button>
@@ -132,6 +146,18 @@ export default function Learners() {
           <p className="text-xs md:text-sm text-gray-600 mt-2">Overall performance</p>
         </div>
       </div>
+
+      <AddLearnerModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleAddLearner}
+      />
+
+      <SuccessNotification
+        isVisible={showSuccess}
+        message={successMessage}
+        onClose={() => setShowSuccess(false)}
+      />
     </div>
   );
 }
