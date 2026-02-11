@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, User, Hash, Mail, Calendar, GraduationCap } from 'lucide-react';
+import { X, User, Hash, Mail, Calendar, GraduationCap, Percent } from 'lucide-react';
 
 interface AddLearnerModalProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ export interface LearnerFormData {
   date_of_birth: string;
   enrollment_date: string;
   status: string;
+  avgScore: string;
 }
 
 export default function AddLearnerModal({ isOpen, onClose, onSubmit }: AddLearnerModalProps) {
@@ -26,6 +27,7 @@ export default function AddLearnerModal({ isOpen, onClose, onSubmit }: AddLearne
     date_of_birth: '',
     enrollment_date: new Date().toISOString().split('T')[0],
     status: 'Active',
+    avgScore: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,6 +41,7 @@ export default function AddLearnerModal({ isOpen, onClose, onSubmit }: AddLearne
       date_of_birth: '',
       enrollment_date: new Date().toISOString().split('T')[0],
       status: 'Active',
+      avgScore: '',
     });
   };
 
@@ -180,6 +183,27 @@ export default function AddLearnerModal({ isOpen, onClose, onSubmit }: AddLearne
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="flex items-center gap-2">
+                  <Percent className="w-4 h-4 text-emerald-600" />
+                  Average Percentage
+                </div>
+              </label>
+              <input
+                type="number"
+                name="avgScore"
+                value={formData.avgScore}
+                onChange={handleChange}
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="e.g., 85.5"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              />
+              <p className="text-xs text-gray-500 mt-1">Enter average percentage (0-100)</p>
             </div>
           </div>
 

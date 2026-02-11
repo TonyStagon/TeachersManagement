@@ -15,6 +15,7 @@ export interface ImportedLearner {
   date_of_birth: string;
   enrollment_date: string;
   status: string;
+  avg_score?: string;
 }
 
 export default function ImportLearnersModal({ isOpen, onClose, onImport }: ImportLearnersModalProps) {
@@ -24,11 +25,11 @@ export default function ImportLearnersModal({ isOpen, onClose, onImport }: Impor
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const downloadTemplate = () => {
-    const headers = ['full_name', 'grade', 'student_number', 'email', 'date_of_birth', 'enrollment_date', 'status'];
+    const headers = ['full_name', 'grade', 'student_number', 'email', 'date_of_birth', 'enrollment_date', 'status', 'avg_score'];
     const sampleData = [
-      'John Doe,Grade 10,STU101,john.doe@student.edu,2007-05-15,2024-01-10,Active',
-      'Jane Smith,Grade 11,STU102,jane.smith@student.edu,2006-08-22,2023-01-10,Active',
-      'Mike Johnson,Grade 12,STU103,mike.johnson@student.edu,2005-12-03,2022-01-10,Active',
+      'John Doe,Grade 10,STU101,john.doe@student.edu,2007-05-15,2024-01-10,Active,85.5',
+      'Jane Smith,Grade 11,STU102,jane.smith@student.edu,2006-08-22,2023-01-10,Active,92.0',
+      'Mike Johnson,Grade 12,STU103,mike.johnson@student.edu,2005-12-03,2022-01-10,Active,78.3',
     ];
 
     const csvContent = [headers.join(','), ...sampleData].join('\n');
@@ -93,6 +94,7 @@ export default function ImportLearnersModal({ isOpen, onClose, onImport }: Impor
           date_of_birth: values[headers.indexOf('date_of_birth')],
           enrollment_date: values[headers.indexOf('enrollment_date')],
           status: values[headers.indexOf('status')] || 'Active',
+          avg_score: headers.includes('avg_score') ? values[headers.indexOf('avg_score')] : undefined,
         };
 
         if (!learner.full_name || !learner.grade || !learner.student_number || !learner.email) {
@@ -259,11 +261,11 @@ export default function ImportLearnersModal({ isOpen, onClose, onImport }: Impor
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <h3 className="font-semibold text-gray-900 mb-2">CSV Format Requirements:</h3>
             <ul className="text-sm text-gray-700 space-y-1">
-              <li>• Headers must include: full_name, grade, student_number, email, date_of_birth, enrollment_date, status</li>
+              <li>• Headers must include: full_name, grade, student_number, email, date_of_birth, enrollment_date, status, avg_score</li>
               <li>• Grade must be: Grade 10, Grade 11, or Grade 12</li>
               <li>• Dates must be in format: YYYY-MM-DD</li>
               <li>• Status should be: Active, Inactive, or Graduated</li>
-              <li>• Student averages will be calculated automatically from performance records</li>
+              <li>• avg_score is optional (0-100), will be used as initial average percentage</li>
             </ul>
           </div>
 

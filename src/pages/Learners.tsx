@@ -90,14 +90,20 @@ export default function Learners() {
       newId = (maxId + 1).toString();
     }
 
-    // Generate a random average score between 60-95 for demonstration
-    const randomScore = Math.floor(Math.random() * 36) + 60;
+    // Use provided average score or default to 0 if empty/invalid
+    const avgScoreValue = learnerData.avgScore ? parseFloat(learnerData.avgScore) : 0;
+    const validatedAvgScore = isNaN(avgScoreValue) ? 0 : Math.max(0, Math.min(100, avgScoreValue));
 
-    const newLearner = {
-      ...learnerData,
+    const newLearner: Learner = {
       id: newId,
-      avgScore: randomScore,
+      full_name: learnerData.full_name,
+      grade: learnerData.grade,
+      student_number: learnerData.student_number,
+      email: learnerData.email,
+      date_of_birth: learnerData.date_of_birth,
+      enrollment_date: learnerData.enrollment_date,
       status: learnerData.status || 'Active',
+      avgScore: validatedAvgScore,
     };
 
     setLearners([...learners, newLearner]);
@@ -118,13 +124,23 @@ export default function Learners() {
 
     const newLearners = importedLearners.map((learnerData) => {
       maxId += 1;
-      const randomScore = Math.floor(Math.random() * 36) + 60;
+      
+      // Use provided average score or default to 0 if empty/invalid
+      const avgScoreStr = learnerData.avg_score || '';
+      const avgScoreValue = avgScoreStr ? parseFloat(avgScoreStr) : 0;
+      const validatedAvgScore = isNaN(avgScoreValue) ? 0 : Math.max(0, Math.min(100, avgScoreValue));
 
       return {
-        ...learnerData,
         id: maxId.toString(),
-        avgScore: randomScore,
-      };
+        full_name: learnerData.full_name,
+        grade: learnerData.grade,
+        student_number: learnerData.student_number,
+        email: learnerData.email,
+        date_of_birth: learnerData.date_of_birth,
+        enrollment_date: learnerData.enrollment_date,
+        status: learnerData.status || 'Active',
+        avgScore: validatedAvgScore,
+      } as Learner;
     });
 
     setLearners([...learners, ...newLearners]);
@@ -135,8 +151,22 @@ export default function Learners() {
 
   const handleEditLearner = (learnerData: LearnerFormData) => {
     if (selectedLearner) {
+      // Convert avgScore from string to number
+      const avgScoreValue = learnerData.avgScore ? parseFloat(learnerData.avgScore) : selectedLearner.avgScore;
+      const validatedAvgScore = isNaN(avgScoreValue) ? selectedLearner.avgScore : Math.max(0, Math.min(100, avgScoreValue));
+      
       const updatedLearners = learners.map((l) =>
-        l.id === selectedLearner.id ? { ...l, ...learnerData } : l
+        l.id === selectedLearner.id ? {
+          ...l,
+          full_name: learnerData.full_name,
+          grade: learnerData.grade,
+          student_number: learnerData.student_number,
+          email: learnerData.email,
+          date_of_birth: learnerData.date_of_birth,
+          enrollment_date: learnerData.enrollment_date,
+          status: learnerData.status,
+          avgScore: validatedAvgScore,
+        } as Learner : l
       );
       setLearners(updatedLearners);
       setSuccessMessage(`${learnerData.full_name}'s details have been updated!`);

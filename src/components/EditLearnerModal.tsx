@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, User, Hash, Mail, Calendar, GraduationCap } from 'lucide-react';
+import { X, User, Hash, Mail, Calendar, GraduationCap, Percent } from 'lucide-react';
 
 interface EditLearnerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (learnerData: LearnerFormData) => void;
-  learner: LearnerFormData & { id: string } | null;
+  learner: (LearnerFormData & { id: string; avgScore?: number | string }) | null;
 }
 
 export interface LearnerFormData {
@@ -16,6 +16,7 @@ export interface LearnerFormData {
   date_of_birth: string;
   enrollment_date: string;
   status: string;
+  avgScore: string;
 }
 
 export default function EditLearnerModal({ isOpen, onClose, onSubmit, learner }: EditLearnerModalProps) {
@@ -27,10 +28,14 @@ export default function EditLearnerModal({ isOpen, onClose, onSubmit, learner }:
     date_of_birth: '',
     enrollment_date: new Date().toISOString().split('T')[0],
     status: 'Active',
+    avgScore: '',
   });
 
   useEffect(() => {
     if (learner) {
+      const avgScoreValue = learner.avgScore !== undefined
+        ? (typeof learner.avgScore === 'number' ? learner.avgScore.toString() : learner.avgScore)
+        : '';
       setFormData({
         full_name: learner.full_name,
         grade: learner.grade,
@@ -39,6 +44,7 @@ export default function EditLearnerModal({ isOpen, onClose, onSubmit, learner }:
         date_of_birth: learner.date_of_birth,
         enrollment_date: learner.enrollment_date,
         status: learner.status,
+        avgScore: avgScoreValue,
       });
     }
   }, [learner, isOpen]);
@@ -187,6 +193,27 @@ export default function EditLearnerModal({ isOpen, onClose, onSubmit, learner }:
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="flex items-center gap-2">
+                  <Percent className="w-4 h-4 text-blue-600" />
+                  Average Percentage
+                </div>
+              </label>
+              <input
+                type="number"
+                name="avgScore"
+                value={formData.avgScore}
+                onChange={handleChange}
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="e.g., 85.5"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+              <p className="text-xs text-gray-500 mt-1">Enter average percentage (0-100)</p>
             </div>
 
             <div className="md:col-span-2">

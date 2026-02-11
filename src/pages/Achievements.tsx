@@ -1,7 +1,38 @@
 import { Award, Star, TrendingUp, Trophy } from 'lucide-react';
 import { mockAchievements, mockLearners } from '../lib/mockData';
+import { useState, useEffect } from 'react';
+
+interface Learner {
+  id: string;
+  full_name: string;
+  grade: string;
+  student_number: string;
+  email: string;
+  date_of_birth: string;
+  enrollment_date: string;
+  status: string;
+  avgScore: number;
+}
+
+const LOCAL_STORAGE_KEY = 'teacher-management-learners';
 
 export default function Achievements() {
+  const [learners, setLearners] = useState<Learner[]>(mockLearners);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0) {
+          setLearners(parsed);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load learners from localStorage:', error);
+    }
+  }, []);
+
   const achievementsByType = {
     Excellence: mockAchievements.filter(a => a.badge_type === 'Excellence'),
     Improvement: mockAchievements.filter(a => a.badge_type === 'Improvement'),
@@ -74,7 +105,7 @@ export default function Achievements() {
         <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Achievements</h2>
         <div className="space-y-4">
           {mockAchievements.map((achievement) => {
-            const learner = mockLearners.find(l => l.id === achievement.learner_id);
+            const learner = learners.find(l => l.id === achievement.learner_id);
             const Icon = getBadgeIcon(achievement.badge_type);
             const colorClass = getBadgeColor(achievement.badge_type);
 
@@ -110,7 +141,7 @@ export default function Achievements() {
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Achievement Leaderboard</h2>
         <div className="space-y-3">
-          {mockLearners
+          {learners
             .map(learner => ({
               ...learner,
               achievementCount: mockAchievements.filter(a => a.learner_id === learner.id).length,
@@ -129,7 +160,7 @@ export default function Achievements() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900">{learner.full_name}</p>
-                  <p className="text-sm text-gray-600">{learner.grade}</p>
+                  <p className="text-sm text-gray-600">{learner.grade} • Avg: {learner.avgScore}%</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-amber-500" />
