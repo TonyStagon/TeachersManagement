@@ -8,6 +8,7 @@ import Achievements from './pages/Achievements';
 import Resources from './pages/Resources';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import { Funding } from './pages/Funding';
 import { Menu, X } from 'lucide-react';
 
 function App() {
@@ -28,6 +29,8 @@ function App() {
         return <Achievements />;
       case 'resources':
         return <Resources />;
+      case 'funding':
+        return <Funding />;
       case 'notifications':
         return <Notifications />;
       case 'profile':

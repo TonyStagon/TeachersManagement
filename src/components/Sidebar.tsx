@@ -9,6 +9,7 @@ import {
   Award,
   GraduationCap,
   X,
+  Banknote,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -25,6 +26,7 @@ const navigation = [
   { id: 'reports', name: 'Reports', icon: FileText },
   { id: 'achievements', name: 'Achievements', icon: Award },
   { id: 'resources', name: 'Resources', icon: BookOpen },
+  { id: 'funding', name: 'Funding', icon: Banknote },
   { id: 'notifications', name: 'Notifications', icon: Bell },
   { id: 'profile', name: 'Profile', icon: Settings },
 ];
