@@ -10,6 +10,18 @@ import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import { Funding } from './pages/Funding';
 import { Menu, X } from 'lucide-react';
+import { debugHelper } from './lib/debugHelper';
+import { notificationManager } from './lib/notificationManager';
+
+// Request notification permissions on app load
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission().catch(err => {
+    console.log('Notification permission request cancelled', err);
+  });
+}
+
+// Initialize sound reminders for any existing unread alerts
+notificationManager.initializeSoundReminders();
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');

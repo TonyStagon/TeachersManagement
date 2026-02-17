@@ -1,5 +1,5 @@
 import { Award, Star, TrendingUp, Trophy } from 'lucide-react';
-import { mockAchievements, mockLearners } from '../lib/mockData';
+import { mockAchievements, mockLearners, STORAGE_KEYS } from '../lib/mockData';
 import { useState, useEffect } from 'react';
 
 interface Learner {
@@ -14,14 +14,12 @@ interface Learner {
   avgScore: number;
 }
 
-const LOCAL_STORAGE_KEY = 'teacher-management-learners';
-
 export default function Achievements() {
   const [learners, setLearners] = useState<Learner[]>(mockLearners);
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEYS.LEARNERS);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.length > 0) {

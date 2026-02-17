@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, UserPlus, Upload, Mail, Phone, Calendar, Users, Edit2, Trash2 } from 'lucide-react';
-import { mockLearners } from '../lib/mockData';
+import { mockLearners, STORAGE_KEYS } from '../lib/mockData';
 import AddLearnerModal, { LearnerFormData } from '../components/AddLearnerModal';
 import EditLearnerModal from '../components/EditLearnerModal';
 import ImportLearnersModal, { ImportedLearner } from '../components/ImportLearnersModal';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import SuccessNotification from '../components/SuccessNotification';
+import { notificationManager } from '../lib/notificationManager';
 
 interface Learner {
   id: string;
@@ -21,14 +22,11 @@ interface Learner {
   created_at?: string;
 }
 
-// Key for localStorage
-const LOCAL_STORAGE_KEY = 'teacher-management-learners';
-
 export default function Learners() {
   // Load learners from localStorage or use mock data as fallback
   const [learners, setLearners] = useState<Learner[]>(() => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEYS.LEARNERS);
       if (saved) {
         const parsed = JSON.parse(saved);
         // Ensure we have at least the mock learners if saved data is empty
@@ -43,7 +41,7 @@ export default function Learners() {
   // Save learners to localStorage whenever they change
   useEffect(() => {
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(learners));
+      localStorage.setItem(STORAGE_KEYS.LEARNERS, JSON.stringify(learners));
     } catch (error) {
       console.error('Failed to save learners to localStorage:', error);
     }
@@ -110,6 +108,15 @@ export default function Learners() {
     setSuccessMessage(`${learnerData.full_name} has been successfully added to ${learnerData.grade}!`);
     setShowSuccess(true);
     setIsModalOpen(false);
+
+    // Check if learner is at-risk and create notification with sound alert
+    if (validatedAvgScore < 70) {
+      notificationManager.createAtRiskNotification(
+        learnerData.full_name,
+        validatedAvgScore,
+        learnerData.student_number
+      );
+    }
   };
 
   const handleImportLearners = (importedLearners: ImportedLearner[]) => {
@@ -147,6 +154,17 @@ export default function Learners() {
     setSuccessMessage(`Successfully imported ${newLearners.length} learner${newLearners.length !== 1 ? 's' : ''}!`);
     setShowSuccess(true);
     setIsImportModalOpen(false);
+
+    // Create notifications for at-risk learners from import
+    newLearners.forEach(learner => {
+      if (learner.avgScore < 70) {
+        notificationManager.createAtRiskNotification(
+          learner.full_name,
+          learner.avgScore,
+          learner.student_number
+        );
+      }
+    });
   };
 
   const handleEditLearner = (learnerData: LearnerFormData) => {

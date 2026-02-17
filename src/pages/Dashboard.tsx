@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Users, TrendingUp, Award, Target } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import {
@@ -7,15 +8,87 @@ import {
   getAverageAPS,
   getTopPerformers,
   mockAchievements,
+  STORAGE_KEYS,
 } from '../lib/mockData';
 
+interface Learner {
+  id: string;
+  full_name: string;
+  grade: string;
+  student_number: string;
+  email: string;
+  date_of_birth: string;
+  enrollment_date: string;
+  status: string;
+  avgScore: number;
+  teacher_id?: string;
+  created_at?: string;
+}
+
 export default function Dashboard() {
+  // Load learners from localStorage (synced with Learners page)
+  const [learners, setLearners] = useState<Learner[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.LEARNERS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.length > 0 ? parsed : mockLearners;
+      }
+    } catch (error) {
+      console.error('Failed to load learners from localStorage:', error);
+    }
+    return mockLearners;
+  });
+
+  // Sync learners from localStorage when page loads or storage changes
+  useEffect(() => {
+    // Function to load learners from localStorage
+    const loadLearnersFromStorage = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.LEARNERS);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.length > 0) {
+            setLearners(parsed);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to sync learners:', error);
+      }
+      setLearners(mockLearners);
+    };
+
+    // Load immediately on component mount
+    loadLearnersFromStorage();
+
+    // Listen for storage changes from other tabs/windows
+    const handleStorageChange = () => {
+      loadLearnersFromStorage();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Poll localStorage every 500ms to catch same-tab updates
+    const pollInterval = setInterval(loadLearnersFromStorage, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(pollInterval);
+    };
+  }, []);
+
   const performanceDistribution = getPerformanceDistribution();
   const averageAPS = getAverageAPS();
-  const topPerformers = getTopPerformers();
+  const topPerformersFromMock = getTopPerformers();
+  
+  // Use learners from localStorage for top performers, falling back to mock data
+  const topPerformers = learners.length > 0
+    ? learners.sort((a, b) => b.avgScore - a.avgScore).slice(0, 5)
+    : topPerformersFromMock;
 
-  const totalLearners = mockLearners.length;
-  const activeLearners = mockLearners.filter(l => l.status === 'Active').length;
+  const totalLearners = learners.length;
+  const activeLearners = learners.filter((l: Learner) => l.status === 'Active').length;
   const totalAssessments = mockPerformanceRecords.length;
 
   return (

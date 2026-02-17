@@ -1,11 +1,103 @@
+import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Target, AlertCircle } from 'lucide-react';
-import { mockLearners, mockPerformanceRecords } from '../lib/mockData';
+import { mockLearners, mockPerformanceRecords, STORAGE_KEYS } from '../lib/mockData';
+
+interface Learner {
+  id: string;
+  full_name: string;
+  grade: string;
+  student_number: string;
+  email: string;
+  date_of_birth: string;
+  enrollment_date: string;
+  status: string;
+  avgScore: number;
+  teacher_id?: string;
+  created_at?: string;
+}
+
+interface PerformanceRecord {
+  learner_id: string;
+  subject: string;
+  term: string;
+  score: number;
+  grade_achieved: string;
+  assessment_type: string;
+}
 
 export default function Performance() {
-  const learnerPerformance = mockLearners.map(learner => {
-    const records = mockPerformanceRecords.filter(r => r.learner_id === learner.id);
+  // Load learners from localStorage (synced with Learners page)
+  const [learners, setLearners] = useState<Learner[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.LEARNERS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.length > 0 ? parsed : mockLearners;
+      }
+    } catch (error) {
+      console.error('Failed to load learners from localStorage:', error);
+    }
+    return mockLearners;
+  });
+
+  // Load performance records from localStorage
+  const [performanceRecords, setPerformanceRecords] = useState<PerformanceRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.PERFORMANCE_RECORDS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.length > 0 ? parsed : mockPerformanceRecords;
+      }
+    } catch (error) {
+      console.error('Failed to load performance records from localStorage:', error);
+    }
+    return mockPerformanceRecords;
+  });
+
+  // Sync learners from localStorage when page loads or localStorage changes
+  useEffect(() => {
+    // Function to load learners from localStorage
+    const loadLearnersFromStorage = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.LEARNERS);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.length > 0) {
+            setLearners(parsed);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to sync learners:', error);
+      }
+      setLearners(mockLearners);
+    };
+
+    // Load immediately on component mount
+    loadLearnersFromStorage();
+
+    // Listen for storage changes from other tabs/windows
+    const handleStorageChange = () => {
+      loadLearnersFromStorage();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Poll localStorage every 500ms to catch same-tab updates
+    const pollInterval = setInterval(loadLearnersFromStorage, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(pollInterval);
+    };
+  }, []);
+
+  const learnerPerformance = learners.map(learner => {
+    const records = performanceRecords.filter(r => r.learner_id === learner.id);
     const loRecords = records.filter(r => r.subject === 'Life Orientation');
-    const avgScore = loRecords.reduce((sum, r) => sum + r.score, 0) / (loRecords.length || 1);
+    const avgScore = loRecords.length > 0 
+      ? loRecords.reduce((sum, r) => sum + r.score, 0) / loRecords.length
+      : learner.avgScore || 0; // Use learner's avgScore as fallback if no records
 
     const term1Score = loRecords.find(r => r.term === 'Term 1')?.score || 0;
     const term2Score = loRecords.find(r => r.term === 'Term 2')?.score || 0;

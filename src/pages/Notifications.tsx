@@ -1,7 +1,67 @@
+import { useState, useEffect } from 'react';
 import { Bell, Award, AlertCircle, Info, Check } from 'lucide-react';
-import { mockNotifications } from '../lib/mockData';
+import { mockNotifications, STORAGE_KEYS } from '../lib/mockData';
+import { notificationManager, type Notification } from '../lib/notificationManager';
 
 export default function Notifications() {
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.length > 0 ? parsed : mockNotifications;
+      }
+    } catch (error) {
+      console.error('Failed to load notifications from localStorage:', error);
+    }
+    return mockNotifications;
+  });
+
+  // Sync notifications from localStorage
+  useEffect(() => {
+    // Function to load notifications from localStorage
+    const loadNotificationsFromStorage = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.length > 0) {
+            setNotifications(parsed);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to sync notifications:', error);
+      }
+      setNotifications(mockNotifications);
+    };
+
+    // Load immediately on component mount
+    loadNotificationsFromStorage();
+
+    // Initialize sound reminders for unread alerts
+    notificationManager.initializeSoundReminders();
+
+    // Set refresh callback so UI updates when marked as read
+    notificationManager.setRefreshCallback(() => {
+      loadNotificationsFromStorage();
+    });
+
+    // Listen for storage changes from other tabs/windows
+    const handleStorageChange = () => {
+      loadNotificationsFromStorage();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Poll localStorage every 500ms to catch same-tab updates
+    const pollInterval = setInterval(loadNotificationsFromStorage, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(pollInterval);
+    };
+  }, []);
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'Achievement':
@@ -40,7 +100,17 @@ export default function Notifications() {
     return `${diffInDays} days ago`;
   };
 
-  const unreadCount = mockNotifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  const handleMarkAsRead = (notificationId: string) => {
+    const updated = notificationManager.markAsRead(notificationId);
+    setNotifications(updated);
+  };
+
+  const handleMarkAllAsRead = () => {
+    const updated = notificationManager.markAllAsRead();
+    setNotifications(updated);
+  };
 
   return (
     <div className="space-y-6">
@@ -49,10 +119,15 @@ export default function Notifications() {
           <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
           <p className="text-gray-600 mt-1">Stay updated with learner activities and alerts</p>
         </div>
-        <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-md">
-          <Check className="w-4 h-4" />
-          Mark All Read
-        </button>
+        {unreadCount > 0 && (
+          <button
+            onClick={handleMarkAllAsRead}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-md"
+          >
+            <Check className="w-4 h-4" />
+            Mark All Read
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -63,7 +138,7 @@ export default function Notifications() {
             </div>
             <h3 className="font-bold text-gray-900">Total</h3>
           </div>
-          <p className="text-3xl font-bold text-emerald-700">{mockNotifications.length}</p>
+          <p className="text-3xl font-bold text-emerald-700">{notifications.length}</p>
           <p className="text-sm text-gray-600 mt-1">All notifications</p>
         </div>
 
@@ -91,7 +166,7 @@ export default function Notifications() {
             <h3 className="font-bold text-gray-900">Achievements</h3>
           </div>
           <p className="text-3xl font-bold text-amber-700">
-            {mockNotifications.filter(n => n.type === 'Achievement').length}
+            {notifications.filter(n => n.type === 'Achievement').length}
           </p>
           <p className="text-sm text-gray-600 mt-1">This week</p>
         </div>
@@ -100,7 +175,7 @@ export default function Notifications() {
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Notifications</h2>
         <div className="space-y-3">
-          {mockNotifications.map((notification) => {
+          {notifications.map((notification) => {
             const Icon = getNotificationIcon(notification.type);
             const colors = getNotificationColor(notification.type);
 
@@ -134,7 +209,10 @@ export default function Notifications() {
                         {notification.type}
                       </span>
                       {!notification.is_read && (
-                        <button className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+                        <button
+                          onClick={() => handleMarkAsRead(notification.id)}
+                          className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                        >
                           Mark as read
                         </button>
                       )}
@@ -146,7 +224,7 @@ export default function Notifications() {
           })}
         </div>
 
-        {mockNotifications.length === 0 && (
+        {notifications.length === 0 && (
           <div className="text-center py-12">
             <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications</h3>

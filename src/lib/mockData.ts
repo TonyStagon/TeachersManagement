@@ -1,3 +1,10 @@
+// Export localStorage keys for state management across pages
+export const STORAGE_KEYS = {
+  LEARNERS: 'teacher-management-learners',
+  PERFORMANCE_RECORDS: 'teacher-management-performance-records',
+  NOTIFICATIONS: 'teacher-management-notifications',
+} as const;
+
 export const mockTeacher = {
   id: '1',
   full_name: 'Sarah Mitchell',
