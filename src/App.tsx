@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Learners from './pages/Learners';
@@ -9,23 +10,25 @@ import Resources from './pages/Resources';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import { Funding } from './pages/Funding';
-import { Menu, X } from 'lucide-react';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import { Menu, Loader } from 'lucide-react';
 import { debugHelper } from './lib/debugHelper';
 import { notificationManager } from './lib/notificationManager';
 
-// Request notification permissions on app load
 if ('Notification' in window && Notification.permission === 'default') {
   Notification.requestPermission().catch(err => {
     console.log('Notification permission request cancelled', err);
   });
 }
 
-// Initialize sound reminders for any existing unread alerts
 notificationManager.initializeSoundReminders();
 
-function App() {
+function AppContent() {
+  const { user, teacher, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
   const renderContent = () => {
     switch (activeTab) {
@@ -52,9 +55,27 @@ function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-emerald-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !teacher) {
+    return authMode === 'login' ? (
+      <Login onSwitchToRegister={() => setAuthMode('register')} />
+    ) : (
+      <Register onSwitchToLogin={() => setAuthMode('login')} />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -68,9 +89,8 @@ function App() {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
-      
+
       <main className="lg:ml-64 p-4 md:p-6 lg:p-8 transition-all duration-300 min-h-screen">
-        {/* Mobile header with menu button */}
         <div className="lg:hidden mb-6 bg-white rounded-xl shadow-md p-4 flex items-center justify-between">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -81,12 +101,20 @@ function App() {
           <h1 className="text-xl font-bold text-gray-900">
             {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
           </h1>
-          <div className="w-10"></div> {/* Spacer for centering */}
+          <div className="w-10"></div>
         </div>
-        
+
         {renderContent()}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

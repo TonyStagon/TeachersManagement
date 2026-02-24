@@ -10,7 +10,9 @@ import {
   GraduationCap,
   X,
   Banknote,
+  User,
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -32,9 +34,10 @@ const navigation = [
 ];
 
 export default function Sidebar({ activeTab, onTabChange, isOpen = false, onClose }: SidebarProps) {
+  const { teacher } = useAuth();
+
   const handleTabChange = (tab: string) => {
     onTabChange(tab);
-    // Close sidebar on mobile after selecting a tab
     if (window.innerWidth < 1024 && onClose) {
       onClose();
     }
@@ -42,12 +45,10 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onClos
 
   return (
     <>
-      {/* Sidebar - fixed on all screens, hidden on mobile when closed */}
       <div className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-emerald-800 to-emerald-900 text-white h-screen flex flex-col shadow-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* Mobile close button */}
         <div className="lg:hidden p-4 border-b border-emerald-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
@@ -66,7 +67,6 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onClos
           </button>
         </div>
 
-        {/* Desktop header (without close button) */}
         <div className="hidden lg:block p-6 border-b border-emerald-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
@@ -77,6 +77,36 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onClos
               <p className="text-xs text-emerald-300">Teacher Dashboard</p>
             </div>
           </div>
+        </div>
+
+        <div className="p-4 border-b border-emerald-700">
+          <button
+            onClick={() => handleTabChange('profile')}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-emerald-700/50 transition-all duration-200 group"
+          >
+            <div className="relative">
+              {teacher?.profile_image ? (
+                <img
+                  src={teacher.profile_image}
+                  alt={teacher.full_name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center border-2 border-emerald-500">
+                  <User className="w-6 h-6 text-white" />
+                </div>
+              )}
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-emerald-800"></div>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-semibold text-white text-sm truncate">
+                {teacher?.full_name || 'Teacher'}
+              </p>
+              <p className="text-xs text-emerald-300 truncate">
+                {teacher?.subject_specialization || 'Life Orientation'}
+              </p>
+            </div>
+          </button>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">

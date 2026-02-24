@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, User, Hash, Mail, Calendar, GraduationCap, Percent } from 'lucide-react';
+import { generateUniqueStudentNumber } from '../lib/learnerService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AddLearnerModalProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ export interface LearnerFormData {
 }
 
 export default function AddLearnerModal({ isOpen, onClose, onSubmit }: AddLearnerModalProps) {
+  const { teacher } = useAuth();
   const [formData, setFormData] = useState<LearnerFormData>({
     full_name: '',
     grade: 'Grade 10',
@@ -29,6 +32,33 @@ export default function AddLearnerModal({ isOpen, onClose, onSubmit }: AddLearne
     status: 'Active',
     avgScore: '',
   });
+  const [isGeneratingStudentNumber, setIsGeneratingStudentNumber] = useState(false);
+
+  useEffect(() => {
+    const generateStudentNumber = async () => {
+      if (isOpen && teacher?.id) {
+        setIsGeneratingStudentNumber(true);
+        try {
+          const studentNumber = await generateUniqueStudentNumber(teacher.id);
+          setFormData(prev => ({
+            ...prev,
+            student_number: studentNumber
+          }));
+        } catch (error) {
+          console.error('Failed to generate student number:', error);
+          // Fallback to manual pattern if generation fails
+          setFormData(prev => ({
+            ...prev,
+            student_number: 'STU001'
+          }));
+        } finally {
+          setIsGeneratingStudentNumber(false);
+        }
+      }
+    };
+
+    generateStudentNumber();
+  }, [isOpen, teacher?.id]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,15 +152,26 @@ export default function AddLearnerModal({ isOpen, onClose, onSubmit }: AddLearne
                   Student Number
                 </div>
               </label>
-              <input
-                type="text"
-                name="student_number"
-                value={formData.student_number}
-                onChange={handleChange}
-                required
-                placeholder="e.g., STU001"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  name="student_number"
+                  value={formData.student_number}
+                  onChange={handleChange}
+                  required
+                  readOnly
+                  placeholder="Auto-generating..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all bg-gray-50"
+                />
+                {isGeneratingStudentNumber && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600"></div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Student number is automatically generated and guaranteed to be unique
+              </p>
             </div>
 
             <div className="md:col-span-2">

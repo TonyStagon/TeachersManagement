@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Users, TrendingUp, Award, Target } from 'lucide-react';
 import StatCard from '../components/StatCard';
+import { useAuth } from '../contexts/AuthContext';
+import { fetchLearners } from '../lib/learnerService';
 import {
-  mockLearners,
   mockPerformanceRecords,
   getPerformanceDistribution,
   getAverageAPS,
-  getTopPerformers,
   mockAchievements,
-  STORAGE_KEYS,
 } from '../lib/mockData';
 
 interface Learner {
@@ -26,70 +25,92 @@ interface Learner {
 }
 
 export default function Dashboard() {
-  // Load learners from localStorage (synced with Learners page)
-  const [learners, setLearners] = useState<Learner[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.LEARNERS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.length > 0 ? parsed : mockLearners;
-      }
-    } catch (error) {
-      console.error('Failed to load learners from localStorage:', error);
-    }
-    return mockLearners;
-  });
+  const { teacher } = useAuth();
+  const [learners, setLearners] = useState<Learner[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sync learners from localStorage when page loads or storage changes
+  // Fetch learners from Supabase
   useEffect(() => {
-    // Function to load learners from localStorage
-    const loadLearnersFromStorage = () => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEYS.LEARNERS);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.length > 0) {
-            setLearners(parsed);
-            return;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to sync learners:', error);
+    const loadLearners = async () => {
+      if (!teacher?.id) {
+        setLoading(false);
+        return;
       }
-      setLearners(mockLearners);
+
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedLearners = await fetchLearners(teacher.id);
+        
+        // Transform the fetched learners to match the local Learner interface
+        const transformedLearners: Learner[] = fetchedLearners.map(learner => ({
+          id: learner.id,
+          full_name: learner.full_name,
+          grade: learner.grade,
+          student_number: learner.student_number,
+          email: learner.email || '',
+          date_of_birth: learner.date_of_birth || '',
+          enrollment_date: learner.enrollment_date,
+          status: learner.status,
+          avgScore: learner.avg_score || 0,
+          teacher_id: learner.teacher_id,
+          created_at: learner.created_at
+        }));
+        
+        setLearners(transformedLearners);
+      } catch (err: any) {
+        console.error('Failed to fetch learners:', err);
+        setError(err.message || 'Failed to load learner data');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Load immediately on component mount
-    loadLearnersFromStorage();
-
-    // Listen for storage changes from other tabs/windows
-    const handleStorageChange = () => {
-      loadLearnersFromStorage();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Poll localStorage every 500ms to catch same-tab updates
-    const pollInterval = setInterval(loadLearnersFromStorage, 500);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(pollInterval);
-    };
-  }, []);
+    loadLearners();
+  }, [teacher?.id]);
 
   const performanceDistribution = getPerformanceDistribution();
-  const averageAPS = getAverageAPS();
-  const topPerformersFromMock = getTopPerformers();
   
-  // Use learners from localStorage for top performers, falling back to mock data
+  // Calculate top performers from real data
   const topPerformers = learners.length > 0
     ? learners.sort((a, b) => b.avgScore - a.avgScore).slice(0, 5)
-    : topPerformersFromMock;
+    : [];
 
   const totalLearners = learners.length;
   const activeLearners = learners.filter((l: Learner) => l.status === 'Active').length;
-  const totalAssessments = mockPerformanceRecords.length;
+  const totalAssessments = mockPerformanceRecords.length; // TODO: Replace with real performance records
+  
+  // Calculate average APS from real learner data
+  const averageAPS = learners.length > 0
+    ? (learners.reduce((sum, learner) => sum + (learner.avgScore || 0), 0) / learners.length).toFixed(1)
+    : "0.0"; // Fallback if no learners
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h2 className="text-xl font-bold text-red-800 mb-2">Error Loading Dashboard</h2>
+        <p className="text-red-700 mb-4">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -218,7 +239,7 @@ export default function Dashboard() {
         <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Achievements</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {mockAchievements.map((achievement) => {
-            const learner = mockLearners.find(l => l.id === achievement.learner_id);
+            const learner = learners.find(l => l.id === achievement.learner_id);
             return (
               <div
                 key={achievement.learner_id}

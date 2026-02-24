@@ -25,11 +25,11 @@ export default function ImportLearnersModal({ isOpen, onClose, onImport }: Impor
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const downloadTemplate = () => {
-    const headers = ['full_name', 'grade', 'student_number', 'email', 'date_of_birth', 'enrollment_date', 'status', 'avg_score'];
+    const headers = ['full_name', 'grade', 'email', 'date_of_birth', 'enrollment_date', 'status', 'avg_score'];
     const sampleData = [
-      'John Doe,Grade 10,STU101,john.doe@student.edu,2007-05-15,2024-01-10,Active,85.5',
-      'Jane Smith,Grade 11,STU102,jane.smith@student.edu,2006-08-22,2023-01-10,Active,92.0',
-      'Mike Johnson,Grade 12,STU103,mike.johnson@student.edu,2005-12-03,2022-01-10,Active,78.3',
+      'John Doe,Grade 10,john.doe@student.edu,2007-05-15,2024-01-10,Active,85.5',
+      'Jane Smith,Grade 11,jane.smith@student.edu,2006-08-22,2023-01-10,Active,92.0',
+      'Mike Johnson,Grade 12,mike.johnson@student.edu,2005-12-03,2022-01-10,Active,78.3',
     ];
 
     const csvContent = [headers.join(','), ...sampleData].join('\n');
@@ -68,7 +68,7 @@ export default function ImportLearnersModal({ isOpen, onClose, onImport }: Impor
       }
 
       const headers = lines[0].split(',').map(h => h.trim());
-      const requiredHeaders = ['full_name', 'grade', 'student_number', 'email', 'date_of_birth', 'enrollment_date', 'status'];
+      const requiredHeaders = ['full_name', 'grade', 'email', 'date_of_birth', 'enrollment_date', 'status'];
 
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
       if (missingHeaders.length > 0) {
@@ -89,7 +89,7 @@ export default function ImportLearnersModal({ isOpen, onClose, onImport }: Impor
         const learner: ImportedLearner = {
           full_name: values[headers.indexOf('full_name')],
           grade: values[headers.indexOf('grade')],
-          student_number: values[headers.indexOf('student_number')],
+          student_number: '', // Will be generated during import
           email: values[headers.indexOf('email')],
           date_of_birth: values[headers.indexOf('date_of_birth')],
           enrollment_date: values[headers.indexOf('enrollment_date')],
@@ -97,7 +97,7 @@ export default function ImportLearnersModal({ isOpen, onClose, onImport }: Impor
           avg_score: headers.includes('avg_score') ? values[headers.indexOf('avg_score')] : undefined,
         };
 
-        if (!learner.full_name || !learner.grade || !learner.student_number || !learner.email) {
+        if (!learner.full_name || !learner.grade || !learner.email) {
           newErrors.push(`Row ${i + 1}: Missing required fields`);
           continue;
         }

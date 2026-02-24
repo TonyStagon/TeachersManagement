@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ExternalLink, Calendar, Globe } from 'lucide-react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
-import { supabase } from '../lib/supabase';
+import { supabaseFunding } from '../lib/supabase-funding';
 
 interface Scholarship {
   name: string;
@@ -33,7 +33,7 @@ export function Funding() {
       setError(null);
 
       // Fetch scholarships - using type assertion since tables may not be in TypeScript definitions
-      const { data: scholarshipsData, error: scholarshipsError } = await supabase
+      const { data: scholarshipsData, error: scholarshipsError } = await supabaseFunding
         .from('scholarships')
         .select('scholarships, scholarship_url, closing_date, source, created_at')
         .order('closing_date', { ascending: true });
@@ -51,7 +51,7 @@ export function Funding() {
       setScholarships(formattedScholarships);
 
       // Fetch bursaries
-      const { data: bursariesData, error: bursariesError } = await supabase
+      const { data: bursariesData, error: bursariesError } = await supabaseFunding
         .from('bursaries')
         .select('scholarships, scholarship_url, source, scraped_at')
         .order('scraped_at', { ascending: false });

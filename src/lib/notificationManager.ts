@@ -1,16 +1,18 @@
 /**
  * Notification Manager
  * Handles creating, reading, and managing notifications with sound alerts
- * for at-risk learners and other important events
+ * for at-risk learners, top performers, and other important events
  */
 
 import { STORAGE_KEYS } from './mockData';
+import { sendTeacherNotificationEmail, type NotificationEmailData } from './emailService';
+import { createNotification as createDbNotification } from './notificationService';
 
 export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'Achievement' | 'Alert' | 'Info';
+  type: string;
   is_read: boolean;
   created_at: string;
   learner_id?: string;
@@ -102,7 +104,7 @@ class NotificationManager {
   createNotification(
     title: string,
     message: string,
-    type: 'Achievement' | 'Alert' | 'Info' = 'Info',
+    type: string = 'Info',
     learner_id?: string,
     learner_name?: string
   ): Notification {
@@ -118,8 +120,16 @@ class NotificationManager {
       sound_play_count: 0, // Initialize sound play counter
     };
 
+    console.log('Creating notification:', { title, message, type, learner_id, learner_name });
+
     // Save to localStorage
     this.saveNotification(notification);
+    console.log('Notification saved to localStorage');
+
+    // Also save to database if teacher is available
+    this.saveNotificationToDatabase(notification).catch(error => {
+      console.error('Failed to save notification to database:', error);
+    });
 
     // Play sound based on type
     const soundType = type === 'Alert' ? 'alert' : type === 'Achievement' ? 'achievement' : 'info';
@@ -145,6 +155,72 @@ class NotificationManager {
       localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
     } catch (error) {
       console.error('Failed to save notification:', error);
+    }
+  }
+
+  // Save notification to database
+  private async saveNotificationToDatabase(notification: Notification): Promise<void> {
+    try {
+      const teacherId = this.getTeacherId();
+      console.log('Attempting to save notification to database. Teacher ID:', teacherId);
+      
+      if (!teacherId) {
+        console.warn('Cannot save notification to database: Teacher ID not available');
+        return;
+      }
+
+      console.log('Saving notification to database with data:', {
+        teacher_id: teacherId,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        is_read: notification.is_read,
+        learner_id: notification.learner_id || null,
+        learner_name: notification.learner_name || null,
+      });
+
+      const result = await createDbNotification({
+        teacher_id: teacherId,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        is_read: notification.is_read,
+        learner_id: notification.learner_id || null,
+        learner_name: notification.learner_name || null,
+      });
+      
+      if (!result) {
+        console.warn('Failed to save notification to database: No result returned');
+      } else {
+        console.log('Notification saved to database successfully:', result.id);
+      }
+    } catch (error) {
+      console.error('Failed to save notification to database:', error);
+    }
+  }
+
+  // Get teacher ID from localStorage or AuthContext
+  private getTeacherId(): string | null {
+    try {
+      // Try to get teacher info from localStorage
+      const teacherData = localStorage.getItem('teacher_profile');
+      if (teacherData) {
+        const teacher = JSON.parse(teacherData);
+        if (teacher.id) {
+          return teacher.id;
+        }
+      }
+
+      // Try to get from AuthContext via global window object
+      if (typeof window !== 'undefined' && (window as any).teacherId) {
+        return (window as any).teacherId;
+      }
+
+      // Return null if no ID found
+      return null;
+    } catch (error) {
+      console.error('Error getting teacher ID:', error);
+      return null;
     }
   }
 
@@ -229,24 +305,156 @@ class NotificationManager {
 
   // Create at-risk learner notification
   createAtRiskNotification(learnerName: string, learnerScore: number, student_number?: string) {
-    return this.createNotification(
+    const notification = this.createNotification(
       'Performance Alert',
       `${learnerName} (${student_number || 'N/A'}) needs additional support in Life Orientation. Score: ${learnerScore}%`,
       'Alert',
       undefined,
       learnerName
     );
+
+    // Send email notification if teacher email is available
+    this.sendEmailNotification({
+      teacherEmail: this.getTeacherEmail(),
+      notificationType: 'at-risk',
+      learnerName,
+      learnerScore,
+      studentNumber: student_number,
+      notificationMessage: `${learnerName} needs additional support in Life Orientation. Score: ${learnerScore}%`,
+    });
+
+    return notification;
+  }
+
+  // Create top performer notification
+  createTopPerformerNotification(learnerName: string, learnerScore: number, student_number?: string, rank?: number, totalLearners?: number) {
+    const rankText = rank ? `Rank #${rank}${totalLearners ? ` out of ${totalLearners}` : ''}` : 'Top Performer';
+    const notification = this.createNotification(
+      'Top Performer Alert',
+      `${learnerName} (${student_number || 'N/A'}) is excelling in Life Orientation. Score: ${learnerScore}% (${rankText})`,
+      'Achievement',
+      undefined,
+      learnerName
+    );
+
+    // Send email notification if teacher email is available
+    this.sendEmailNotification({
+      teacherEmail: this.getTeacherEmail(),
+      notificationType: 'top-performer',
+      learnerName,
+      learnerScore,
+      studentNumber: student_number,
+      notificationMessage: `${learnerName} is excelling in Life Orientation. Score: ${learnerScore}% (${rankText})`,
+      rank,
+      totalLearners,
+    });
+
+    return notification;
   }
 
   // Create achievement notification
   createAchievementNotification(learnerName: string, achievementTitle: string, student_number?: string) {
-    return this.createNotification(
+    const notification = this.createNotification(
       'New Achievement',
       `${learnerName} (${student_number || 'N/A'}) has earned: ${achievementTitle}`,
       'Achievement',
       undefined,
       learnerName
     );
+
+    // Send email notification if teacher email is available
+    this.sendEmailNotification({
+      teacherEmail: this.getTeacherEmail(),
+      notificationType: 'achievement',
+      learnerName,
+      achievementTitle,
+      studentNumber: student_number,
+      notificationMessage: `${learnerName} has earned: ${achievementTitle}`,
+    });
+
+    return notification;
+  }
+
+  // Get teacher email from localStorage or AuthContext
+  private getTeacherEmail(): string {
+    try {
+      // Try to get teacher info from localStorage
+      const teacherData = localStorage.getItem('teacher_profile');
+      if (teacherData) {
+        const teacher = JSON.parse(teacherData);
+        if (teacher.email) {
+          return teacher.email;
+        }
+      }
+
+      // Try to get from AuthContext via global window object
+      if (typeof window !== 'undefined' && (window as any).teacherEmail) {
+        return (window as any).teacherEmail;
+      }
+
+      // Return empty string if no email found
+      return '';
+    } catch (error) {
+      console.error('Error getting teacher email:', error);
+      return '';
+    }
+  }
+
+  // Get teacher name from localStorage or AuthContext
+  private getTeacherName(): string {
+    try {
+      // Try to get teacher info from localStorage
+      const teacherData = localStorage.getItem('teacher_profile');
+      if (teacherData) {
+        const teacher = JSON.parse(teacherData);
+        if (teacher.full_name) {
+          return teacher.full_name;
+        }
+      }
+
+      // Try to get from AuthContext via global window object
+      if (typeof window !== 'undefined' && (window as any).teacherName) {
+        return (window as any).teacherName;
+      }
+
+      // Return default if no name found
+      return 'Teacher';
+    } catch (error) {
+      console.error('Error getting teacher name:', error);
+      return 'Teacher';
+    }
+  }
+
+  // Send email notification
+  private async sendEmailNotification(data: Omit<NotificationEmailData, 'teacherName'>) {
+    try {
+      const teacherName = this.getTeacherName();
+      const teacherEmail = this.getTeacherEmail();
+
+      if (!teacherEmail) {
+        console.warn('Cannot send email notification: Teacher email not available');
+        return;
+      }
+
+      const emailData: NotificationEmailData = {
+        ...data,
+        teacherName,
+        teacherEmail,
+      };
+
+      // Send email in background (don't wait for response)
+      sendTeacherNotificationEmail(emailData).then(success => {
+        if (success) {
+          console.log('Email notification sent successfully');
+        } else {
+          console.warn('Failed to send email notification');
+        }
+      }).catch(error => {
+        console.error('Error sending email notification:', error);
+      });
+    } catch (error) {
+      console.error('Error preparing email notification:', error);
+    }
   }
 
   // Clear all notifications (use with caution)
@@ -374,7 +582,7 @@ class NotificationManager {
 // Export singleton instance
 export const notificationManager = new NotificationManager();
 
-// Make globally accessible in development
+// For development/debugging: expose on window
 if (typeof window !== 'undefined') {
   (window as any).notificationManager = notificationManager;
 }

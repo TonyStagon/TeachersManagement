@@ -60,8 +60,8 @@ export default function Reports() {
 
     window.addEventListener('storage', handleStorageChange);
     
-    // Poll localStorage every 500ms to catch same-tab updates
-    const pollInterval = setInterval(loadLearnersFromStorage, 500);
+    // Poll localStorage every 5000ms (5 seconds) to catch same-tab updates
+    const pollInterval = setInterval(loadLearnersFromStorage, 5000);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);

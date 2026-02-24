@@ -54,14 +54,15 @@ export default function Notifications() {
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Poll localStorage every 500ms to catch same-tab updates
-    const pollInterval = setInterval(loadNotificationsFromStorage, 500);
+    // Poll localStorage every 5000ms (5 seconds) to catch same-tab updates
+    const pollInterval = setInterval(loadNotificationsFromStorage, 5000);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(pollInterval);
     };
   }, []);
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'Achievement':
@@ -197,56 +198,35 @@ export default function Notifications() {
                       <h3 className={`font-bold ${notification.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
                         {notification.title}
                       </h3>
-                      <span className="text-sm text-gray-500 whitespace-nowrap ml-4">
-                        {formatDate(notification.created_at)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">{formatDate(notification.created_at)}</span>
+                        {!notification.is_read && (
+                          <button
+                            onClick={() => handleMarkAsRead(notification.id)}
+                            className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-200 transition-colors"
+                          >
+                            Mark Read
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <p className={`text-sm ${notification.is_read ? 'text-gray-600' : 'text-gray-700'} mb-3`}>
-                      {notification.message}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
-                        {notification.type}
-                      </span>
-                      {!notification.is_read && (
-                        <button
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                        >
-                          Mark as read
-                        </button>
-                      )}
-                    </div>
+                    <p className="text-gray-700 mb-2">{notification.message}</p>
+                    {notification.learner_name && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span className="font-medium">Learner:</span>
+                        <span>{notification.learner_name}</span>
+                        {notification.learner_id && (
+                          <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                            ID: {notification.learner_id}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             );
           })}
-        </div>
-
-        {notifications.length === 0 && (
-          <div className="text-center py-12">
-            <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications</h3>
-            <p className="text-gray-600">You're all caught up!</p>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-xl shadow-md p-6 border border-emerald-200">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <Info className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-gray-900 mb-2">Notification Preferences</h3>
-            <p className="text-gray-600 mb-4">
-              Customize which notifications you receive and how often you'd like to be updated.
-            </p>
-            <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
-              Manage Preferences
-            </button>
-          </div>
         </div>
       </div>
     </div>

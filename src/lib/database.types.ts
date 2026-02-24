@@ -4,7 +4,7 @@ export interface Database {
       teachers: {
         Row: {
           id: string;
-          auth_id: string | null;
+          auth_user_id: string;
           full_name: string;
           email: string;
           subject_specialization: string;
@@ -12,10 +12,11 @@ export interface Database {
           experience_years: number;
           profile_image: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
-          auth_id?: string | null;
+          auth_user_id: string;
           full_name: string;
           email: string;
           subject_specialization?: string;
@@ -23,10 +24,11 @@ export interface Database {
           experience_years?: number;
           profile_image?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
-          auth_id?: string | null;
+          auth_user_id?: string;
           full_name?: string;
           email?: string;
           subject_specialization?: string;
@@ -34,6 +36,7 @@ export interface Database {
           experience_years?: number;
           profile_image?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
       };
       learners: {
@@ -47,6 +50,7 @@ export interface Database {
           date_of_birth: string | null;
           enrollment_date: string;
           status: string;
+          avg_score: number;
           created_at: string;
         };
         Insert: {
@@ -59,6 +63,7 @@ export interface Database {
           date_of_birth?: string | null;
           enrollment_date?: string;
           status?: string;
+          avg_score?: number;
           created_at?: string;
         };
         Update: {
@@ -71,6 +76,7 @@ export interface Database {
           date_of_birth?: string | null;
           enrollment_date?: string;
           status?: string;
+          avg_score?: number;
           created_at?: string;
         };
       };
@@ -179,6 +185,9 @@ export interface Database {
           type: string;
           is_read: boolean;
           created_at: string;
+          learner_id?: string | null;
+          learner_name?: string | null;
+          sound_play_count?: number;
         };
         Insert: {
           id?: string;
@@ -188,6 +197,9 @@ export interface Database {
           type?: string;
           is_read?: boolean;
           created_at?: string;
+          learner_id?: string | null;
+          learner_name?: string | null;
+          sound_play_count?: number;
         };
         Update: {
           id?: string;
@@ -197,6 +209,9 @@ export interface Database {
           type?: string;
           is_read?: boolean;
           created_at?: string;
+          learner_id?: string | null;
+          learner_name?: string | null;
+          sound_play_count?: number;
         };
       };
       achievements: {
