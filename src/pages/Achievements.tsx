@@ -1,40 +1,70 @@
 import { Award, Star, TrendingUp, Trophy } from 'lucide-react';
-import { mockAchievements, mockLearners, STORAGE_KEYS } from '../lib/mockData';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { fetchLearners } from '../lib/learnerService';
+import { fetchAchievements } from '../lib/achievementService';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface Learner {
   id: string;
   full_name: string;
   grade: string;
   student_number: string;
-  email: string;
-  date_of_birth: string;
-  enrollment_date: string;
-  status: string;
-  avgScore: number;
+  avg_score: number;
+}
+
+interface Achievement {
+  id: string;
+  learner_id: string;
+  title: string;
+  description: string;
+  badge_type: string;
+  achievement_type: string;
+  auto_awarded: boolean;
+  awarded_date: string;
 }
 
 export default function Achievements() {
-  const [learners, setLearners] = useState<Learner[]>(mockLearners);
+  const { teacher } = useAuth();
+  const [learners, setLearners] = useState<Learner[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.LEARNERS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.length > 0) {
-          setLearners(parsed);
-        }
+    const loadData = async () => {
+      if (!teacher?.id) {
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Failed to load learners from localStorage:', error);
-    }
-  }, []);
+
+      try {
+        const [learnersData, achievementsData] = await Promise.all([
+          fetchLearners(teacher.id),
+          fetchAchievements(teacher.id)
+        ]);
+
+        setLearners(learnersData.map(l => ({
+          id: l.id,
+          full_name: l.full_name,
+          grade: l.grade,
+          student_number: l.student_number,
+          avg_score: l.avg_score,
+        })));
+        setAchievements(achievementsData);
+      } catch (error) {
+        console.error('Error loading achievements:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [teacher?.id]);
 
   const achievementsByType = {
-    Excellence: mockAchievements.filter(a => a.badge_type === 'Excellence'),
-    Improvement: mockAchievements.filter(a => a.badge_type === 'Improvement'),
-    Consistency: mockAchievements.filter(a => a.badge_type === 'Consistency'),
+    Excellence: achievements.filter(a => a.badge_type === 'Excellence'),
+    Improvement: achievements.filter(a => a.badge_type === 'Improvement'),
+    Consistency: achievements.filter(a => a.badge_type === 'Consistency'),
   };
 
   const getBadgeIcon = (type: string) => {
@@ -62,6 +92,8 @@ export default function Achievements() {
         return 'bg-gray-500';
     }
   };
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="space-y-6">
@@ -101,39 +133,52 @@ export default function Achievements() {
 
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Achievements</h2>
-        <div className="space-y-4">
-          {mockAchievements.map((achievement) => {
-            const learner = learners.find(l => l.id === achievement.learner_id);
-            const Icon = getBadgeIcon(achievement.badge_type);
-            const colorClass = getBadgeColor(achievement.badge_type);
+        {achievements.length === 0 ? (
+          <div className="text-center py-12">
+            <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No achievements yet</h3>
+            <p className="text-gray-600">Achievements will appear here when learners reach milestones</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {achievements.map((achievement) => {
+              const learner = learners.find(l => l.id === achievement.learner_id);
+              const Icon = getBadgeIcon(achievement.badge_type);
+              const colorClass = getBadgeColor(achievement.badge_type);
 
-            return (
-              <div
-                key={`${achievement.learner_id}-${achievement.title}`}
-                className="flex items-start gap-4 p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
-              >
-                <div className={`w-14 h-14 ${colorClass} rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <Icon className="w-7 h-7 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg">{achievement.title}</h3>
-                      <p className="text-emerald-700 font-semibold">{learner?.full_name}</p>
+              return (
+                <div
+                  key={achievement.id}
+                  className="flex items-start gap-4 p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+                >
+                  <div className={`w-14 h-14 ${colorClass} rounded-full flex items-center justify-center flex-shrink-0`}>
+                    <Icon className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-lg">{achievement.title}</h3>
+                        <p className="text-emerald-700 font-semibold">{learner?.full_name}</p>
+                      </div>
+                      <span className="text-sm text-gray-500">{achievement.awarded_date}</span>
                     </div>
-                    <span className="text-sm text-gray-500">{achievement.awarded_date}</span>
-                  </div>
-                  <p className="text-gray-600">{achievement.description}</p>
-                  <div className="mt-3">
-                    <span className={`px-3 py-1 ${colorClass.replace('bg-', 'bg-').replace('500', '100')} ${colorClass.replace('bg-', 'text-').replace('500', '700')} rounded-full text-xs font-semibold`}>
-                      {achievement.badge_type}
-                    </span>
+                    <p className="text-gray-600">{achievement.description}</p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className={`px-3 py-1 ${colorClass.replace('bg-', 'bg-').replace('500', '100')} ${colorClass.replace('bg-', 'text-').replace('500', '700')} rounded-full text-xs font-semibold`}>
+                        {achievement.badge_type}
+                      </span>
+                      {achievement.auto_awarded && (
+                        <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                          Auto-awarded
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6">
@@ -142,7 +187,7 @@ export default function Achievements() {
           {learners
             .map(learner => ({
               ...learner,
-              achievementCount: mockAchievements.filter(a => a.learner_id === learner.id).length,
+              achievementCount: achievements.filter(a => a.learner_id === learner.id).length,
             }))
             .filter(l => l.achievementCount > 0)
             .sort((a, b) => b.achievementCount - a.achievementCount)
@@ -158,7 +203,7 @@ export default function Achievements() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900">{learner.full_name}</p>
-                  <p className="text-sm text-gray-600">{learner.grade} • Avg: {learner.avgScore}%</p>
+                  <p className="text-sm text-gray-600">{learner.grade}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-amber-500" />
@@ -166,6 +211,11 @@ export default function Achievements() {
                 </div>
               </div>
             ))}
+          {learners.filter(l => achievements.filter(a => a.learner_id === l.id).length > 0).length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No learners with achievements yet
+            </div>
+          )}
         </div>
       </div>
     </div>

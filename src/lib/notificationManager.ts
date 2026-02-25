@@ -27,8 +27,24 @@ class NotificationManager {
   // Play notification sound
   playNotificationSound(type: 'alert' | 'achievement' | 'info' = 'alert') {
     try {
+      // Check if AudioContext is available
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) {
+        console.warn('AudioContext not available in this browser');
+        this.fallbackNotification(type);
+        return;
+      }
+
       // Create audio context for sound generation
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new AudioContextClass();
+      
+      // Check if audio context is suspended (requires user interaction)
+      if (audioContext.state === 'suspended') {
+        console.warn('AudioContext suspended, requires user interaction. Using fallback notification.');
+        this.fallbackNotification(type);
+        return;
+      }
+
       const now = audioContext.currentTime;
       
       if (type === 'alert') {
@@ -52,6 +68,19 @@ class NotificationManager {
       }
     } catch (error) {
       console.error('Could not play notification sound:', error);
+      // Fallback to simple console notification
+      console.log(`🔔 ${type.toUpperCase()} Notification: Check the notifications page`);
+    }
+  }
+
+  // Fallback notification when AudioContext is not available
+  private fallbackNotification(type: string) {
+    // Try browser notification if available
+    if ('Notification' in window && Notification.permission === 'granted') {
+      this.showBrowserNotification(type as any);
+    } else {
+      // Last resort: console log
+      console.log(`🔔 ${type.toUpperCase()} Notification (sound unavailable): Check the notifications page`);
     }
   }
 
@@ -131,9 +160,14 @@ class NotificationManager {
       console.error('Failed to save notification to database:', error);
     });
 
-    // Play sound based on type
+    // Play sound based on type (try-catch to handle AudioContext issues)
     const soundType = type === 'Alert' ? 'alert' : type === 'Achievement' ? 'achievement' : 'info';
-    this.playNotificationSound(soundType);
+    try {
+      this.playNotificationSound(soundType);
+    } catch (error) {
+      console.warn('Could not play notification sound:', error);
+      // Still continue with notification creation even if sound fails
+    }
 
     // Update sound play count
     this.incrementSoundPlayCount(notification.id);

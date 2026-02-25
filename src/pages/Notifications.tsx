@@ -9,12 +9,14 @@ export default function Notifications() {
       const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return parsed.length > 0 ? parsed : mockNotifications;
+        // Only return parsed data, even if it's an empty array
+        return parsed;
       }
     } catch (error) {
       console.error('Failed to load notifications from localStorage:', error);
     }
-    return mockNotifications;
+    // Return empty array if no data in localStorage
+    return [];
   });
 
   // Sync notifications from localStorage
@@ -25,15 +27,14 @@ export default function Notifications() {
         const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed.length > 0) {
-            setNotifications(parsed);
-            return;
-          }
+          setNotifications(parsed);
+          return;
         }
       } catch (error) {
         console.error('Failed to sync notifications:', error);
       }
-      setNotifications(mockNotifications);
+      // If no data in localStorage, set empty array
+      setNotifications([]);
     };
 
     // Load immediately on component mount
@@ -175,59 +176,74 @@ export default function Notifications() {
 
       <div className="bg-white rounded-xl shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Notifications</h2>
-        <div className="space-y-3">
-          {notifications.map((notification) => {
-            const Icon = getNotificationIcon(notification.type);
-            const colors = getNotificationColor(notification.type);
+        {notifications.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Bell className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications yet</h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              Notifications will appear here when learners achieve high scores, need support, or earn achievements.
+            </p>
+            <div className="mt-6 text-sm text-gray-500">
+              <p>Try adding a learner with a score below 70% (at-risk) or above 90% (top performer)</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {notifications.map((notification) => {
+              const Icon = getNotificationIcon(notification.type);
+              const colors = getNotificationColor(notification.type);
 
-            return (
-              <div
-                key={notification.id}
-                className={`p-4 rounded-lg border-l-4 ${
-                  notification.is_read
-                    ? 'bg-gray-50 border-gray-300'
-                    : 'bg-white border-emerald-500 shadow-md'
-                }`}
-              >
-                <div className="flex items-start gap-4">
-                  <div className={`w-10 h-10 ${colors.bg} rounded-full flex items-center justify-center flex-shrink-0`}>
-                    <Icon className={`w-5 h-5 ${colors.icon}`} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className={`font-bold ${notification.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
-                        {notification.title}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-500">{formatDate(notification.created_at)}</span>
-                        {!notification.is_read && (
-                          <button
-                            onClick={() => handleMarkAsRead(notification.id)}
-                            className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-200 transition-colors"
-                          >
-                            Mark Read
-                          </button>
-                        )}
-                      </div>
+              return (
+                <div
+                  key={notification.id}
+                  className={`p-4 rounded-lg border-l-4 ${
+                    notification.is_read
+                      ? 'bg-gray-50 border-gray-300'
+                      : 'bg-white border-emerald-500 shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-10 h-10 ${colors.bg} rounded-full flex items-center justify-center flex-shrink-0`}>
+                      <Icon className={`w-5 h-5 ${colors.icon}`} />
                     </div>
-                    <p className="text-gray-700 mb-2">{notification.message}</p>
-                    {notification.learner_name && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="font-medium">Learner:</span>
-                        <span>{notification.learner_name}</span>
-                        {notification.learner_id && (
-                          <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
-                            ID: {notification.learner_id}
-                          </span>
-                        )}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className={`font-bold ${notification.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
+                          {notification.title}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">{formatDate(notification.created_at)}</span>
+                          {!notification.is_read && (
+                            <button
+                              onClick={() => handleMarkAsRead(notification.id)}
+                              className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-200 transition-colors"
+                            >
+                              Mark Read
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    )}
+                      <p className="text-gray-700 mb-2">{notification.message}</p>
+                      {notification.learner_name && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="font-medium">Learner:</span>
+                          <span>{notification.learner_name}</span>
+                          {notification.learner_id && (
+                            <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                              ID: {notification.learner_id}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

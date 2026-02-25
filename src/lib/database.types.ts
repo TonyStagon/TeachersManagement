@@ -88,9 +88,9 @@ export interface Database {
           term: string;
           score: number;
           grade_achieved: string | null;
-          assessment_type: string;
           recorded_date: string;
           notes: string | null;
+          previous_score: number | null;
           created_at: string;
         };
         Insert: {
@@ -100,9 +100,9 @@ export interface Database {
           term: string;
           score: number;
           grade_achieved?: string | null;
-          assessment_type?: string;
           recorded_date?: string;
           notes?: string | null;
+          previous_score?: number | null;
           created_at?: string;
         };
         Update: {
@@ -112,9 +112,9 @@ export interface Database {
           term?: string;
           score?: number;
           grade_achieved?: string | null;
-          assessment_type?: string;
           recorded_date?: string;
           notes?: string | null;
+          previous_score?: number | null;
           created_at?: string;
         };
       };
@@ -221,6 +221,9 @@ export interface Database {
           title: string;
           description: string | null;
           badge_type: string;
+          achievement_type: string;
+          auto_awarded: boolean;
+          awarded_by: string;
           awarded_date: string;
           created_at: string;
         };
@@ -230,6 +233,9 @@ export interface Database {
           title: string;
           description?: string | null;
           badge_type?: string;
+          achievement_type?: string;
+          auto_awarded?: boolean;
+          awarded_by?: string;
           awarded_date?: string;
           created_at?: string;
         };
@@ -239,6 +245,9 @@ export interface Database {
           title?: string;
           description?: string | null;
           badge_type?: string;
+          achievement_type?: string;
+          auto_awarded?: boolean;
+          awarded_by?: string;
           awarded_date?: string;
           created_at?: string;
         };

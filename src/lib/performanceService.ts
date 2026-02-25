@@ -7,9 +7,9 @@ export interface PerformanceRecord {
   term: string;
   score: number;
   grade_achieved: string | null;
-  assessment_type: string;
   recorded_date: string;
   notes: string | null;
+  previous_score: number | null;
   created_at: string;
 }
 
@@ -19,9 +19,9 @@ export interface PerformanceRecordInput {
   term: string;
   score: number;
   grade_achieved?: string | null;
-  assessment_type: string;
   recorded_date: string;
   notes?: string | null;
+  previous_score?: number | null;
 }
 
 // Fetch performance records for a specific learner

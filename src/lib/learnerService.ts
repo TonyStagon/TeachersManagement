@@ -1,4 +1,6 @@
 import { supabase } from './supabase';
+import { createPerformanceRecord } from './performanceService';
+import { awardTopPerformerAchievement } from './achievementService';
 
 export interface Learner {
   id: string;
@@ -33,10 +35,29 @@ export async function createLearner(learner: Omit<Learner, 'id' | 'created_at'>)
     .single();
 
   if (error) throw error;
+
+  await createPerformanceRecord({
+    learner_id: data.id,
+    subject: 'Life Orientation',
+    term: 'Current Term',
+    score: Math.round(learner.avg_score),
+    recorded_date: new Date().toISOString().split('T')[0],
+  });
+
+  if (learner.avg_score >= 80) {
+    await awardTopPerformerAchievement(data.id, learner.full_name, learner.avg_score);
+  }
+
   return data;
 }
 
 export async function updateLearner(id: string, updates: Partial<Learner>): Promise<Learner> {
+  const { data: oldLearner } = await (supabase as any)
+    .from('learners')
+    .select('*')
+    .eq('id', id)
+    .single();
+
   const { data, error } = await (supabase as any)
     .from('learners')
     .update({ ...updates })
@@ -45,6 +66,30 @@ export async function updateLearner(id: string, updates: Partial<Learner>): Prom
     .single();
 
   if (error) throw error;
+
+  if (updates.avg_score !== undefined && oldLearner) {
+    const previousScore = oldLearner.avg_score;
+    const newScore = updates.avg_score;
+
+    await createPerformanceRecord({
+      learner_id: id,
+      subject: 'Life Orientation',
+      term: 'Current Term',
+      score: Math.round(newScore),
+      previous_score: Math.round(previousScore),
+      recorded_date: new Date().toISOString().split('T')[0],
+    });
+
+    if (newScore > previousScore) {
+      const { awardImprovementAchievement } = await import('./achievementService');
+      await awardImprovementAchievement(id, data.full_name, previousScore, newScore);
+    }
+
+    if (newScore >= 80) {
+      await awardTopPerformerAchievement(id, data.full_name, newScore);
+    }
+  }
+
   return data;
 }
 
