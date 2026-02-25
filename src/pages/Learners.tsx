@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, UserPlus, Upload, Mail, Calendar, Users, Edit2, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchLearners, createLearner, updateLearner, deleteLearner, bulkCreateLearners, generateMultipleStudentNumbers, type Learner } from '../lib/learnerService';
+import { awardTopPerformerAchievement } from '../lib/achievementService';
 import AddLearnerModal, { LearnerFormData } from '../components/AddLearnerModal';
 import EditLearnerModal from '../components/EditLearnerModal';
 import ImportLearnersModal, { ImportedLearner } from '../components/ImportLearnersModal';
@@ -84,7 +85,7 @@ export default function Learners() {
       setShowSuccess(true);
       setIsModalOpen(false);
 
-      // Create notifications based on score
+      // Create notifications and award achievements based on score
       if (validatedAvgScore < 70) {
         // At-risk learner notification
         notificationManager.createAtRiskNotification(
@@ -102,6 +103,22 @@ export default function Learners() {
           1, // placeholder rank
           learners.length + 1 // total learners including new one
         );
+
+        // Award top performer achievement to database
+        try {
+          const achievement = await awardTopPerformerAchievement(
+            newLearner.id,
+            learnerData.full_name,
+            validatedAvgScore
+          );
+          if (achievement) {
+            console.log('Top performer achievement awarded:', achievement.id);
+          } else {
+            console.warn('Failed to award top performer achievement');
+          }
+        } catch (error) {
+          console.error('Error awarding top performer achievement:', error);
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Failed to add learner');
@@ -138,11 +155,34 @@ export default function Learners() {
 
       newLearners.forEach(learner => {
         if (learner.avg_score < 70) {
+          // At-risk learner notification
           notificationManager.createAtRiskNotification(
             learner.full_name,
             learner.avg_score,
             learner.student_number
           );
+        } else if (learner.avg_score >= 90) {
+          // Top performer notification
+          notificationManager.createTopPerformerNotification(
+            learner.full_name,
+            learner.avg_score,
+            learner.student_number
+          );
+
+          // Award top performer achievement to database
+          awardTopPerformerAchievement(
+            learner.id,
+            learner.full_name,
+            learner.avg_score
+          ).then(achievement => {
+            if (achievement) {
+              console.log('Top performer achievement awarded for imported learner:', achievement.id);
+            } else {
+              console.warn('Failed to award top performer achievement for imported learner');
+            }
+          }).catch(error => {
+            console.error('Error awarding top performer achievement for imported learner:', error);
+          });
         }
       });
     } catch (err: any) {
@@ -173,6 +213,43 @@ export default function Learners() {
       setShowSuccess(true);
       setIsEditModalOpen(false);
       setSelectedLearner(null);
+
+      // Check if score qualifies for notifications or achievements
+      const previousScore = selectedLearner.avg_score;
+      const newScore = validatedAvgScore;
+
+      // Create notifications based on score changes
+      if (newScore < 70 && newScore !== previousScore) {
+        // At-risk learner notification (only if score changed to below 70)
+        notificationManager.createAtRiskNotification(
+          learnerData.full_name,
+          newScore,
+          learnerData.student_number
+        );
+      } else if (newScore >= 90 && newScore !== previousScore) {
+        // Top performer notification (only if score changed to 90 or above)
+        notificationManager.createTopPerformerNotification(
+          learnerData.full_name,
+          newScore,
+          learnerData.student_number
+        );
+
+        // Award top performer achievement to database
+        try {
+          const achievement = await awardTopPerformerAchievement(
+            selectedLearner.id,
+            learnerData.full_name,
+            newScore
+          );
+          if (achievement) {
+            console.log('Top performer achievement awarded for updated learner:', achievement.id);
+          } else {
+            console.warn('Failed to award top performer achievement for updated learner');
+          }
+        } catch (error) {
+          console.error('Error awarding top performer achievement for updated learner:', error);
+        }
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to update learner');
     }
