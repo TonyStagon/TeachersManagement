@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GraduationCap, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { GraduationCap, Mail, Lock, User, ArrowRight, School, Briefcase } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface RegisterProps {
@@ -11,6 +11,8 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [schoolName, setSchoolName] = useState('');
+  const [experienceYears, setExperienceYears] = useState<number | ''>('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
@@ -29,10 +31,15 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
       return;
     }
 
+    if (experienceYears !== '' && (experienceYears < 0 || experienceYears > 50)) {
+      setError('Experience years must be between 0 and 50');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signUp(email, password, fullName);
+      await signUp(email, password, fullName, schoolName, experienceYears === '' ? 0 : experienceYears);
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
     } finally {
@@ -96,6 +103,42 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 <div className="flex items-center gap-2">
+                  <School className="w-4 h-4 text-emerald-600" />
+                  School Name
+                </div>
+              </label>
+              <input
+                type="text"
+                value={schoolName}
+                onChange={(e) => setSchoolName(e.target.value)}
+                required
+                placeholder="Enter your school name"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-emerald-600" />
+                  Years of Teaching Experience
+                </div>
+              </label>
+              <input
+                type="number"
+                value={experienceYears}
+                onChange={(e) => setExperienceYears(e.target.value === '' ? '' : parseInt(e.target.value))}
+                min="0"
+                max="50"
+                placeholder="Enter years of experience (0-50)"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+              />
+              <p className="text-xs text-gray-500 mt-1">Leave empty or enter 0 if you're a new teacher</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-emerald-600" />
                   Password
                 </div>
@@ -125,6 +168,18 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
                 placeholder="Confirm your password"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
               />
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <GraduationCap className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-emerald-800">Subject Specialization</p>
+                  <p className="text-sm text-emerald-600 mt-1">
+                    Your subject is automatically set to <span className="font-semibold">Life Orientation</span> as this is a Life Orientation teacher management system.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <button

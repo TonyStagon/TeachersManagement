@@ -20,7 +20,7 @@ interface AuthContextType {
   teacher: Teacher | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, schoolName: string, experienceYears: number) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateTeacherProfile: (updates: Partial<Teacher>) => Promise<void>;
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, schoolName: string, experienceYears: number) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -100,7 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email,
             full_name: fullName,
             subject_specialization: 'Life Orientation',
-            experience_years: 0,
+            school_name: schoolName || null,
+            experience_years: experienceYears || 0,
           },
         ]);
 
@@ -125,35 +126,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTeacherProfile = async (updates: Partial<Teacher>) => {
-    if (!user || !teacher) throw new Error('Not authenticated');
+    if (!teacher) throw new Error('No teacher profile found');
 
     const { error } = await (supabase as any)
       .from('teachers')
-      .update({ ...updates })
-      .eq('auth_user_id', user.id);
+      .update(updates)
+      .eq('id', teacher.id);
 
     if (error) throw error;
 
-    await fetchTeacherProfile(user.id);
+    // Refresh teacher data
+    await refreshTeacher();
   };
 
   const uploadProfileImage = async (file: File): Promise<string> => {
-    if (!user) throw new Error('Not authenticated');
+    if (!teacher) throw new Error('No teacher profile found');
 
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/profile.${fileExt}`;
+    const fileName = `${teacher.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `profile-images/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('profile-images')
-      .upload(fileName, file, { upsert: true });
+    const { error: uploadError } = await (supabase as any).storage
+      .from('teacher-profiles')
+      .upload(filePath, file);
 
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage
-      .from('profile-images')
-      .getPublicUrl(fileName);
+    const { data: { publicUrl } } = (supabase as any).storage
+      .from('teacher-profiles')
+      .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    await updateTeacherProfile({ profile_image: publicUrl });
+
+    return publicUrl;
   };
 
   const refreshTeacher = async () => {
@@ -162,20 +167,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const value = {
-    user,
-    teacher,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    updateTeacherProfile,
-    uploadProfileImage,
-    refreshTeacher,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        teacher,
+        session,
+        loading,
+        signUp,
+        signIn,
+        signOut,
+        updateTeacherProfile,
+        uploadProfileImage,
+        refreshTeacher,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

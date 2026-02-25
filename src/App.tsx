@@ -12,7 +12,8 @@ import Profile from './pages/Profile';
 import { Funding } from './pages/Funding';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import { Menu, Loader } from 'lucide-react';
+import LearnerApp from './pages/LearnerApp';
+import { Menu, Loader, GraduationCap, Users } from 'lucide-react';
 import { debugHelper } from './lib/debugHelper';
 import { notificationManager } from './lib/notificationManager';
 
@@ -24,7 +25,48 @@ if ('Notification' in window && Notification.permission === 'default') {
 
 notificationManager.initializeSoundReminders();
 
-function AppContent() {
+// Portal selector shown before any login
+function PortalSelector({ onSelect }: { onSelect: (portal: 'teacher' | 'learner') => void }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-emerald-100 flex items-center justify-center p-4">
+      <div className="max-w-lg w-full">
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <GraduationCap className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900">EduTrack</h1>
+          <p className="text-gray-500 mt-2">Select your portal to continue</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button
+            onClick={() => onSelect('teacher')}
+            className="bg-white rounded-2xl shadow-md p-8 hover:shadow-xl transition-all duration-200 hover:-translate-y-1 text-left group border border-transparent hover:border-emerald-200"
+          >
+            <div className="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-emerald-600 transition-colors">
+              <Users className="w-7 h-7 text-emerald-600 group-hover:text-white transition-colors" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Teacher Portal</h2>
+            <p className="text-sm text-gray-500">Manage learners, track performance, generate reports and more.</p>
+          </button>
+
+          <button
+            onClick={() => onSelect('learner')}
+            className="bg-white rounded-2xl shadow-md p-8 hover:shadow-xl transition-all duration-200 hover:-translate-y-1 text-left group border border-transparent hover:border-blue-200"
+          >
+            <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-colors">
+              <GraduationCap className="w-7 h-7 text-blue-600 group-hover:text-white transition-colors" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Learner Portal</h2>
+            <p className="text-sm text-gray-500">View your profile, scores and discover funding opportunities.</p>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeacherAppContent() {
   const { user, teacher, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -32,26 +74,16 @@ function AppContent() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'learners':
-        return <Learners />;
-      case 'performance':
-        return <Performance />;
-      case 'reports':
-        return <Reports />;
-      case 'achievements':
-        return <Achievements />;
-      case 'resources':
-        return <Resources />;
-      case 'funding':
-        return <Funding />;
-      case 'notifications':
-        return <Notifications />;
-      case 'profile':
-        return <Profile />;
-      default:
-        return <Dashboard />;
+      case 'dashboard': return <Dashboard />;
+      case 'learners': return <Learners />;
+      case 'performance': return <Performance />;
+      case 'reports': return <Reports />;
+      case 'achievements': return <Achievements />;
+      case 'resources': return <Resources />;
+      case 'funding': return <Funding />;
+      case 'notifications': return <Notifications />;
+      case 'profile': return <Profile />;
+      default: return <Dashboard />;
     }
   };
 
@@ -77,18 +109,10 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-gray-100">
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <Sidebar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="lg:ml-64 p-4 md:p-6 lg:p-8 transition-all duration-300 min-h-screen">
         <div className="lg:hidden mb-6 bg-white rounded-xl shadow-md p-4 flex items-center justify-between">
@@ -103,7 +127,6 @@ function AppContent() {
           </h1>
           <div className="w-10"></div>
         </div>
-
         {renderContent()}
       </main>
     </div>
@@ -111,9 +134,43 @@ function AppContent() {
 }
 
 function App() {
+  const [portal, setPortal] = useState<'select' | 'teacher' | 'learner'>('select');
+
+  if (portal === 'select') {
+    return <PortalSelector onSelect={setPortal} />;
+  }
+
+  if (portal === 'learner') {
+    return (
+      <div>
+        {/* Back to portal selection */}
+        <div className="fixed top-3 left-3 z-50">
+          <button
+            onClick={() => setPortal('select')}
+            className="text-xs bg-white border border-gray-200 text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-full shadow-sm hover:shadow transition-all"
+          >
+            ← Switch Portal
+          </button>
+        </div>
+        <LearnerApp />
+      </div>
+    );
+  }
+
   return (
     <AuthProvider>
-      <AppContent />
+      <div>
+        {/* Back to portal selection - only show if not logged in as teacher */}
+        <div className="fixed top-3 right-3 z-50">
+          <button
+            onClick={() => setPortal('select')}
+            className="text-xs bg-white border border-gray-200 text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-full shadow-sm hover:shadow transition-all"
+          >
+            Switch Portal
+          </button>
+        </div>
+        <TeacherAppContent />
+      </div>
     </AuthProvider>
   );
 }

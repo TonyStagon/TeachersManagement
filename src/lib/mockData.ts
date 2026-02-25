@@ -209,8 +209,9 @@ export const mockNotifications = [
   },
 ];
 
-export const getPerformanceDistribution = () => {
-  const scores = mockPerformanceRecords.map(r => r.score);
+export const getPerformanceDistribution = (performanceRecords?: Array<{score: number}>) => {
+  const records = performanceRecords || mockPerformanceRecords;
+  const scores = records.map(r => r.score);
   return {
     excellent: scores.filter(s => s >= 80).length,
     good: scores.filter(s => s >= 70 && s < 80).length,

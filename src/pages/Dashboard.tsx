@@ -3,6 +3,7 @@ import { Users, TrendingUp, Award, Target } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchLearners } from '../lib/learnerService';
+import { fetchPerformanceRecordsByTeacher } from '../lib/performanceService';
 import {
   mockPerformanceRecords,
   getPerformanceDistribution,
@@ -24,15 +25,29 @@ interface Learner {
   created_at?: string;
 }
 
+interface PerformanceRecord {
+  id: string;
+  learner_id: string;
+  subject: string;
+  term: string;
+  score: number;
+  grade_achieved: string | null;
+  assessment_type: string;
+  recorded_date: string;
+  notes: string | null;
+  created_at: string;
+}
+
 export default function Dashboard() {
   const { teacher } = useAuth();
   const [learners, setLearners] = useState<Learner[]>([]);
+  const [performanceRecords, setPerformanceRecords] = useState<PerformanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch learners from Supabase
+  // Fetch learners and performance records from Supabase
   useEffect(() => {
-    const loadLearners = async () => {
+    const loadData = async () => {
       if (!teacher?.id) {
         setLoading(false);
         return;
@@ -41,6 +56,8 @@ export default function Dashboard() {
       try {
         setLoading(true);
         setError(null);
+        
+        // Fetch learners from database
         const fetchedLearners = await fetchLearners(teacher.id);
         
         // Transform the fetched learners to match the local Learner interface
@@ -59,18 +76,25 @@ export default function Dashboard() {
         }));
         
         setLearners(transformedLearners);
+
+        // Fetch performance records from database
+        const fetchedPerformanceRecords = await fetchPerformanceRecordsByTeacher(teacher.id);
+        setPerformanceRecords(fetchedPerformanceRecords);
       } catch (err: any) {
-        console.error('Failed to fetch learners:', err);
-        setError(err.message || 'Failed to load learner data');
+        console.error('Failed to fetch dashboard data:', err);
+        setError(err.message || 'Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
 
-    loadLearners();
+    loadData();
   }, [teacher?.id]);
 
-  const performanceDistribution = getPerformanceDistribution();
+  // Calculate performance distribution from real data, fallback to mock data if no real records
+  const performanceDistribution = getPerformanceDistribution(
+    performanceRecords.length > 0 ? performanceRecords : undefined
+  );
   
   // Calculate top performers from real data
   const topPerformers = learners.length > 0
@@ -79,7 +103,7 @@ export default function Dashboard() {
 
   const totalLearners = learners.length;
   const activeLearners = learners.filter((l: Learner) => l.status === 'Active').length;
-  const totalAssessments = mockPerformanceRecords.length; // TODO: Replace with real performance records
+  const totalAssessments = performanceRecords.length > 0 ? performanceRecords.length : mockPerformanceRecords.length;
   
   // Calculate average APS from real learner data
   const averageAPS = learners.length > 0
@@ -195,7 +219,7 @@ export default function Dashboard() {
 
             <div>
               <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Needs Support (&lt;60%)</span>
+                <span className="text-sm font-medium text-gray-700">Needs Support ({'<'}60%)</span>
                 <span className="text-sm font-bold text-red-700">{performanceDistribution.needsSupport}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
