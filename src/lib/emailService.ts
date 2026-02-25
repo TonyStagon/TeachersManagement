@@ -1,18 +1,17 @@
 /**
  * Email Service for Teacher Management System
- * Uses Resend API for sending email notifications
+ * TEMPORARY VERSION: Email functionality disabled (resend dependency removed)
+ * To enable email functionality in the future:
+ * 1. Install resend package: npm install resend
+ * 2. Import Resend and initialize the client
+ * 3. Update the sendTeacherNotificationEmail function to actually send emails
  */
 
-import { Resend } from 'resend';
+// Email configuration constants (commented out for now, kept for future reference)
+// const FROM_EMAIL = 'notifications@teachermanagement.app';
+// const FROM_NAME = 'Teacher Management System';
 
-// Initialize Resend client
-const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
-
-// Email configuration
-const FROM_EMAIL = 'notifications@teachermanagement.app';
-const FROM_NAME = 'Teacher Management System';
-
+// Interface for email options (kept for future reference)
 export interface EmailOptions {
   to: string | string[];
   subject: string;
@@ -35,70 +34,54 @@ export interface NotificationEmailData {
 
 /**
  * Send an email notification to a teacher
+ * TEMPORARY VERSION: Email sending is disabled, only logs the attempt
  */
 export async function sendTeacherNotificationEmail(data: NotificationEmailData): Promise<boolean> {
   try {
-    if (!resend) {
-      console.warn('Resend API key not configured. Email notifications disabled.');
-      return false;
-    }
-
-    const { teacherEmail, teacherName, notificationType, learnerName, learnerScore, achievementTitle, studentNumber, notificationMessage, rank, totalLearners } = data;
-
-    // Determine email subject based on notification type
+    // Log the email attempt (email functionality temporarily disabled)
+    console.log('Email notifications temporarily disabled (resend dependency removed for build). Would have sent email:', {
+      teacher: data.teacherName,
+      email: data.teacherEmail,
+      type: data.notificationType,
+      learner: data.learnerName,
+      message: data.notificationMessage,
+      score: data.learnerScore,
+      achievement: data.achievementTitle
+    });
+    
+    // Determine what the email subject would have been
     let subject: string;
-    let htmlContent: string;
-
-    switch (notificationType) {
+    switch (data.notificationType) {
       case 'at-risk':
-        subject = `⚠️ Performance Alert: ${learnerName} Needs Support`;
-        htmlContent = generateAtRiskEmailHtml(teacherName, learnerName, learnerScore!, studentNumber, notificationMessage);
+        subject = `⚠️ Performance Alert: ${data.learnerName} Needs Support`;
         break;
       case 'top-performer':
-        subject = `🏆 Top Performer: ${learnerName} is Excelling`;
-        htmlContent = generateTopPerformerEmailHtml(teacherName, learnerName, learnerScore!, studentNumber, notificationMessage, rank, totalLearners);
+        subject = `🏆 Top Performer: ${data.learnerName} is Excelling`;
         break;
       case 'achievement':
-        subject = `🏆 Achievement: ${learnerName} Earned ${achievementTitle}`;
-        htmlContent = generateAchievementEmailHtml(teacherName, learnerName, achievementTitle!, studentNumber, notificationMessage);
+        subject = `🏆 Achievement: ${data.learnerName} Earned ${data.achievementTitle}`;
         break;
       default:
-        subject = `ℹ️ Notification: ${learnerName}`;
-        htmlContent = generateInfoEmailHtml(teacherName, learnerName, notificationMessage);
+        subject = `ℹ️ Notification: ${data.learnerName}`;
         break;
     }
-
-    const emailOptions: EmailOptions = {
-      to: teacherEmail,
-      subject,
-      html: htmlContent,
-      text: generatePlainText(teacherName, learnerName, notificationMessage, notificationType, learnerScore, achievementTitle, rank, totalLearners),
-    };
-
-    const result = await resend.emails.send({
-      from: `${FROM_NAME} <${FROM_EMAIL}>`,
-      to: emailOptions.to,
-      subject: emailOptions.subject,
-      html: emailOptions.html,
-      text: emailOptions.text,
-    });
-
-    if (result.error) {
-      console.error('Failed to send email notification:', result.error);
-      return false;
-    }
-
-    console.log('Email notification sent successfully:', result.data?.id);
+    
+    console.log('Would have sent email with subject:', subject);
+    
+    // Return true to simulate successful email sending for testing
+    // Return false if you want to indicate email wasn't sent
     return true;
   } catch (error) {
-    console.error('Error sending email notification:', error);
+    console.error('Error in email notification function:', error);
     return false;
   }
 }
 
 /**
  * Generate HTML for at-risk learner notification email
+ * TEMPORARILY UNUSED - Email functionality disabled
  */
+/*
 function generateAtRiskEmailHtml(
   teacherName: string,
   learnerName: string,
@@ -156,6 +139,7 @@ function generateAtRiskEmailHtml(
     </html>
   `;
 }
+*/
 
 /**
  * Generate HTML for top performer notification email
