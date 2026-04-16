@@ -12,7 +12,6 @@ import Profile from './pages/Profile';
 import { Funding } from './pages/Funding';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import LearnerApp from './pages/LearnerApp';
 import { Menu, Loader, GraduationCap, Users } from 'lucide-react';
 import { debugHelper } from './lib/debugHelper';
 import { notificationManager } from './lib/notificationManager';
@@ -26,7 +25,7 @@ if ('Notification' in window && Notification.permission === 'default') {
 notificationManager.initializeSoundReminders();
 
 // Portal selector shown before any login
-function PortalSelector({ onSelect }: { onSelect: (portal: 'teacher' | 'learner') => void }) {
+function PortalSelector({ onSelect }: { onSelect: (portal: 'teacher') => void }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-emerald-100 flex items-center justify-center p-4">
       <div className="max-w-lg w-full">
@@ -35,10 +34,10 @@ function PortalSelector({ onSelect }: { onSelect: (portal: 'teacher' | 'learner'
             <GraduationCap className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900">EduTrack</h1>
-          <p className="text-gray-500 mt-2">Select your portal to continue</p>
+          <p className="text-gray-500 mt-2">Teacher Management Portal</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <button
             onClick={() => onSelect('teacher')}
             className="bg-white rounded-2xl shadow-md p-8 hover:shadow-xl transition-all duration-200 hover:-translate-y-1 text-left group border border-transparent hover:border-emerald-200"
@@ -48,17 +47,6 @@ function PortalSelector({ onSelect }: { onSelect: (portal: 'teacher' | 'learner'
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Teacher Portal</h2>
             <p className="text-sm text-gray-500">Manage learners, track performance, generate reports and more.</p>
-          </button>
-
-          <button
-            onClick={() => onSelect('learner')}
-            className="bg-white rounded-2xl shadow-md p-8 hover:shadow-xl transition-all duration-200 hover:-translate-y-1 text-left group border border-transparent hover:border-blue-200"
-          >
-            <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-colors">
-              <GraduationCap className="w-7 h-7 text-blue-600 group-hover:text-white transition-colors" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Learner Portal</h2>
-            <p className="text-sm text-gray-500">View your profile, scores and discover funding opportunities.</p>
           </button>
         </div>
       </div>
@@ -134,27 +122,10 @@ function TeacherAppContent() {
 }
 
 function App() {
-  const [portal, setPortal] = useState<'select' | 'teacher' | 'learner'>('select');
+  const [portal, setPortal] = useState<'select' | 'teacher'>('select');
 
   if (portal === 'select') {
     return <PortalSelector onSelect={setPortal} />;
-  }
-
-  if (portal === 'learner') {
-    return (
-      <div>
-        {/* Back to portal selection */}
-        <div className="fixed top-3 left-3 z-50">
-          <button
-            onClick={() => setPortal('select')}
-            className="text-xs bg-white border border-gray-200 text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-full shadow-sm hover:shadow transition-all"
-          >
-            ← Switch Portal
-          </button>
-        </div>
-        <LearnerApp />
-      </div>
-    );
   }
 
   return (
