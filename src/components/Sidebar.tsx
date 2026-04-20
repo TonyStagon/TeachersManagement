@@ -59,54 +59,64 @@ export default function Sidebar({ activeTab, onTabChange, isOpen = false, onClos
               <p className="text-xs text-emerald-300">Teacher Dashboard</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-emerald-700 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="hidden lg:block p-6 border-b border-emerald-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">EduTrack</h1>
-              <p className="text-xs text-emerald-300">Teacher Dashboard</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 border-b border-emerald-700">
-          <button
-            onClick={() => handleTabChange('profile')}
-            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-emerald-700/50 transition-all duration-200 group"
-          >
-            <div className="relative">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleTabChange('profile')}
+              className="relative p-1 rounded-full hover:bg-emerald-700 transition-colors"
+              title={teacher ? `${teacher.full_name} - ${teacher.subject_specialization}` : 'Profile'}
+            >
               {teacher?.profile_image ? (
                 <img
                   src={teacher.profile_image}
                   alt={teacher.full_name}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500"
+                  className="w-8 h-8 rounded-full object-cover border border-emerald-500"
                 />
               ) : (
-                <div className="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center border-2 border-emerald-500">
-                  <User className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center border border-emerald-500">
+                  <User className="w-4 h-4 text-white" />
                 </div>
               )}
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-emerald-800"></div>
+              <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-emerald-800"></div>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="hidden lg:block p-6 border-b border-emerald-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">EduTrack</h1>
+                <p className="text-xs text-emerald-300">Teacher Dashboard</p>
+              </div>
             </div>
-            <div className="flex-1 text-left">
-              <p className="font-semibold text-white text-sm truncate">
-                {teacher?.full_name || 'Teacher'}
-              </p>
-              <p className="text-xs text-emerald-300 truncate">
-                {teacher?.subject_specialization || 'Life Orientation'}
-              </p>
-            </div>
-          </button>
+            <button
+              onClick={() => handleTabChange('profile')}
+              className="relative p-1 rounded-full hover:bg-emerald-700/50 transition-all duration-200"
+              title={teacher ? `${teacher.full_name} - ${teacher.subject_specialization}` : 'Profile'}
+            >
+              {teacher?.profile_image ? (
+                <img
+                  src={teacher.profile_image}
+                  alt={teacher.full_name}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-emerald-500"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center border-2 border-emerald-500">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+              )}
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-emerald-800"></div>
+            </button>
+          </div>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
